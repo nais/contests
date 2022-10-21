@@ -144,7 +144,7 @@ func main() {
 
 	r := mux.NewRouter()
 
-	r.Handle("/metrics", metrics.Handler())
+	r.Handle("/internal/metrics", metrics.Handler())
 
 	r.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
 		param := r.URL.Query().Get("delay")
