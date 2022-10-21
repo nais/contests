@@ -3,8 +3,7 @@ module github.com/nais/contests
 require (
 	cloud.google.com/go/bigquery v1.41.0
 	cloud.google.com/go/storage v1.26.0
-	github.com/gorilla/context v1.1.1 // indirect
-	github.com/gorilla/mux v1.6.2
+	github.com/gorilla/mux v1.8.0
 	github.com/lib/pq v1.10.7
 	github.com/prometheus/client_golang v0.9.2
 	github.com/sirupsen/logrus v1.2.0
