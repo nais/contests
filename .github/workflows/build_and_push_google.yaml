@@ -1,4 +1,4 @@
-name: Build and deploy contests
+name: Build and Push to Google Artifact Registry
 on: [push]
 env:
   REGISTRY: europe-north1-docker.pkg.dev/nais-io/nais/images
