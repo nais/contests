@@ -75,7 +75,7 @@ func init() {
 	flag.StringVar(&rgwAddress, "rgw-address", os.Getenv("RGW_ADDRESS"), "Ceph RGW objectstore address")
 	flag.StringVar(&rgwAccessKey, "rgw-access-key", os.Getenv("RGW_ACCESS_KEY"), "Ceph RGW objectstore access key")
 	flag.StringVar(&rgwSecretKey, "rgw-secret-key", os.Getenv("RGW_SECRET_KEY"), "Ceph RGW objectstore secret key")
-	flag.StringVar(&connectURL, "connect-url", "https://google.com", "URL to connect to with /connect")
+	flag.StringVar(&connectURL, "connect-url", os.Getenv("CONNECT_URL"), "URL to connect to with /connect")
 	flag.StringVar(&dbName, "db-name", defaultDbName, "database name")
 	flag.StringVar(&dbUser, "db-user", defaultDbUsername, "database username")
 	flag.StringVar(&dbPassword, "db-password", defaultDbPassword, "database password")
@@ -128,7 +128,6 @@ func main() {
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, syscall.SIGTERM, syscall.SIGINT)
-	hostname, _ := os.Hostname()
 
 	metrics.StartTimestamp.SetToCurrentTime()
 	metrics.DeployTimestamp.Set(float64(deployStartTimestamp) / 10e8)
@@ -159,55 +158,6 @@ func main() {
 	r.HandleFunc("/version", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprintf(w, "%s (rev: %s)", version.Version, version.Revision)
-	})
-
-	r.HandleFunc("/hostname", func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = fmt.Fprint(w, hostname)
-	})
-
-	r.HandleFunc("/env", func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = fmt.Fprint(w, os.Environ())
-	})
-
-	r.HandleFunc("/logevent", func(w http.ResponseWriter, r *http.Request) {
-		fields := make(map[string]interface{})
-		for key, value := range r.URL.Query() {
-			fields[key] = value[0]
-		}
-		log.WithField("logtype", "event").WithFields(fields).Info("this is a event log statement")
-		w.WriteHeader(http.StatusOK)
-	})
-
-	r.HandleFunc("/log", func(w http.ResponseWriter, _ *http.Request) {
-		log.Info("this is a log statement from contests")
-		w.WriteHeader(http.StatusOK)
-	})
-
-	r.HandleFunc("/logerror", func(w http.ResponseWriter, _ *http.Request) {
-		log.Error("this is a error log statement from contests")
-		w.WriteHeader(http.StatusOK)
-	})
-
-	r.HandleFunc("/logdebug", func(w http.ResponseWriter, _ *http.Request) {
-		if debug {
-			log.Debug("this is a debug log statement from contests")
-		} else {
-			log.Info("this would have been a debug log statement from contests if debug was enabled")
-		}
-		w.WriteHeader(http.StatusOK)
-	})
-
-	r.HandleFunc("/header-test", func(w http.ResponseWriter, r *http.Request) {
-		log.Infof("Headers: %+v", r.Header)
-		w.Header().Add("X-Frame-Options", "SAMEORIGIN")
-		w.Header().Add("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-		w.Header().Add("X-Content-Type-Options", "nosniff")
-		w.Header().Add("X-XSS-Protection", "1; mode=block")
-		w.Header().Add("Referrer-Policy", "no-referrer-when-downgrade")
-
-		w.WriteHeader(http.StatusOK)
 	})
 
 	r.HandleFunc("/connect", func(w http.ResponseWriter, _ *http.Request) {
