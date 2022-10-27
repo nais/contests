@@ -85,6 +85,8 @@ spec:
         {{- if .Values.contests.storage.enabled }}
         - http://contests/database/test
         - http://contests/bucket/test
+        {{- end }}
+        {{- if .Values.contests.kafka.enabled }}
         - http://contests/kafka/test
         {{- end }}
         {{- if .Values.contests.accessPolicy.enabled }}
