@@ -1,0 +1,89 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-blackbox-exporter
+  labels:
+    {{- include "contests.labels" . | nindent 4 }}
+data:
+  config.yml: |
+    modules:
+      http_2xx:
+        prober: http
+        timeout: 5s
+        http:
+          valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+          follow_redirects: false
+          preferred_ip_protocol: "ip4"
+          ip_protocol_fallback: false
+---
+apiVersion: nais.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ .Release.Name }}-blackbox-exporter
+  labels:
+    {{- include "contests.labels" . | nindent 4 }}
+    team: nais
+spec:
+  image: prom/blackbox-exporter:v0.20.0
+  accessPolicy:
+    outbound:
+      rules:
+        - application: contests
+  filesFrom:
+    - configmap: {{ .Release.Name }}-blackbox-exporter
+      mountPath: /etc/blackbox_exporter
+  port: 9115
+  replicas:
+    max: 2
+    min: 2
+  skipCaBundle: true
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-prometheus-to-blackbox-exporter
+  labels:
+    {{- include "contests.labels" . | nindent 4 }}
+spec:
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: nais-system
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: prometheus
+  podSelector:
+    matchLabels:
+      app: {{ .Release.Name }}-blackbox-exporter
+  policyTypes:
+  - Ingress
+---
+kind: Probe
+apiVersion: monitoring.coreos.com/v1
+metadata:
+  name: {{ .Release.Name }}-probes
+  labels:
+    {{- include "contests.labels" . | nindent 4 }}
+spec:
+  interval: 60s
+  module: http_2xx
+  prober:
+    url: {{ .Release.Name }}-blackbox-exporter.{{ .Release.Namespace }}:80
+  targets:
+    staticConfig:
+      static:
+      {{range .Values.targetURLs }}
+        - {{ . }}
+      {{end}}
+      {{range .Values.additionalTargetURLs }}
+        - {{ . }}
+      {{end}}

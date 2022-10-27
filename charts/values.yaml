@@ -1,0 +1,35 @@
+tenant: "tenant"
+env: "env"
+
+alerts:
+  enabled: true
+
+contests:
+  image:
+    repository: europe-north1-docker.pkg.dev/nais-io/nais/images
+    name: contests
+    tag: sha-8401695
+  ingresses: []
+  connect:
+    url:
+  kafka:
+    enabled: true
+    pool:
+  buckets:
+    enabled: true
+  database:
+    enabled: true
+  bigquery:
+    enabled: true
+
+blackboxExporter:
+  targetURLs:
+    - http://contests/ping
+    - http://contests/database/test
+    - http://contests/bucket/test
+    - http://contests/kafka/test
+    - http://contests-noaccess/ping
+    - https://dns.google
+    - https://www.google.com/
+    - https://www.microsoft.com/
+  additionalTargetURLs:
