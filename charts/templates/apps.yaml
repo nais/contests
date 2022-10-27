@@ -35,19 +35,15 @@ spec:
       value: "bar"
     - name: "BUCKET_NAME"
       value: "{{ .Chart.Name }}-{{ .Values.tenant }}-{{ .Values.env }}"
-  {{ if or .Values.contests.buckets.enabled .Values.contests.database.enabled }}
+  {{ if .Values.contests.storage.enabled }}
   gcp:
-  {{ end }}
-    {{ if .Values.contests.buckets.enabled }}
     buckets:
       - name: "{{ .Chart.Name }}-{{ .Values.tenant }}-{{ .Values.env }}"
-    {{ end }}
-    {{ if .Values.contests.database.enabled }}
     sqlInstances:
       - type: POSTGRES_14
         databases:
           - name: contests
-    {{ end }}
+  {{ end }}
   {{ if .Values.contests.kafka.enabled }}
   kafka:
     pool: {{ .Values.contests.kafka.pool }}
@@ -55,6 +51,7 @@ spec:
   ingresses:
     {{- toYaml .Values.contests.ingresses | nindent 4 }}
 
+{{ if .Values.contests.accessPolicy.enabled }}
 ---
 apiVersion: nais.io/v1alpha1
 kind: Application
@@ -84,3 +81,4 @@ spec:
     requests:
       cpu: 50m
       memory: 64Mi
+{{ end }}

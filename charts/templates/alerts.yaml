@@ -19,6 +19,7 @@ spec:
               Check external connectivity from cluster
               <https://monitoring.nais.io/d/istuhtS4z/contests?orgId=1&var-tenant={{ .Values.tenant }}&var-cluster_id={{ .Values.tenant }}-{{ .Values.env }}|Grafana Dashboard>
 
+        {{- if .Values.contests.storage.enabled }}
         - alert: PersistenceFailed
           expr: probe_success{instance=~"http://contests/.*/test"} == 0
           for: 5m
@@ -28,6 +29,8 @@ spec:
           annotations:
             consequence: Persistence type {{ "{{ $labels.instance }}" }} may be unavailable in cluster.
             action: <https://monitoring.nais.io/d/istuhtS4z/contests?orgId=1&var-tenant={{ .Values.tenant }}&var-cluster_id={{ .Values.tenant }}-{{ .Values.env }}|Grafana Dashboard>
+        {{- end }}
+        {{- if .Values.contests.accessPolicy.enabled }}
         - alert: AccessPolicyAllowed
           expr: probe_success{instance=~"http://contests/ping"} == 0
           for: 5m
@@ -48,5 +51,5 @@ spec:
             consequence: Access policies may not work correctly in cluster.
             action: <https://monitoring.nais.io/d/istuhtS4z/contests?orgId=1&var-tenant={{ .Values.tenant }}&var-cluster_id={{ .Values.tenant }}-{{ .Values.env }}|Grafana Dashboard>
             summary: Blackbox exporter is able to access {{ "{{ $labels.instance }}" }} in cluster when it shouldn't.
-
+        {{- end }}
 {{- end }}

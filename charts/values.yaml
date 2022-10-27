@@ -12,15 +12,13 @@ contests:
   ingresses: []
   connect:
     url:
+  accessPolicy:
+    enabled: true
+  storage:
+    enabled: true
   kafka:
     enabled: true
     pool:
-  buckets:
-    enabled: true
-  database:
-    enabled: true
-  bigquery:
-    enabled: true
 
 blackboxExporter:
   targetURLs:
