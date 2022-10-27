@@ -81,9 +81,18 @@ spec:
   targets:
     staticConfig:
       static:
-      {{range .Values.targetURLs }}
-        - {{ . }}
-      {{end}}
-      {{range .Values.additionalTargetURLs }}
+        - http://contests/ping
+        {{- if .Values.contests.storage.enabled }}
+        - http://contests/database/test
+        - http://contests/bucket/test
+        - http://contests/kafka/test
+        {{- end }}
+        {{- if .Values.contests.accessPolicy.enabled }}
+        - http://contests-noaccess/ping
+        {{- end }}
+        - https://dns.google
+        - https://www.google.com/
+        - https://www.microsoft.com/
+      {{range .Values.blackboxExporter.additionalTargetURLs }}
         - {{ . }}
       {{end}}

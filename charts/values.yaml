@@ -21,13 +21,4 @@ contests:
     pool:
 
 blackboxExporter:
-  targetURLs:
-    - http://contests/ping
-    - http://contests/database/test
-    - http://contests/bucket/test
-    - http://contests/kafka/test
-    - http://contests-noaccess/ping
-    - https://dns.google
-    - https://www.google.com/
-    - https://www.microsoft.com/
   additionalTargetURLs:
