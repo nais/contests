@@ -1,9 +1,6 @@
 tenant: "tenant"
 env: "env"
 
-alerts:
-  enabled: true
-
 contests:
   image:
     repository: europe-north1-docker.pkg.dev/nais-io/nais/images
