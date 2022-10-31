@@ -1,8 +1,8 @@
 module github.com/nais/contests
 
 require (
-	cloud.google.com/go/bigquery v1.42.0
-	cloud.google.com/go/storage v1.26.0
+	cloud.google.com/go/bigquery v1.43.0
+	cloud.google.com/go/storage v1.27.0
 	github.com/gorilla/mux v1.8.0
 	github.com/lib/pq v1.10.7
 	github.com/prometheus/client_golang v1.13.0
@@ -14,9 +14,9 @@ require (
 require github.com/Shopify/sarama v1.37.2
 
 require (
-	cloud.google.com/go v0.102.1 // indirect
+	cloud.google.com/go v0.104.0 // indirect
 	cloud.google.com/go/compute v1.10.0 // indirect
-	cloud.google.com/go/iam v0.3.0 // indirect
+	cloud.google.com/go/iam v0.5.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
