@@ -5,10 +5,8 @@ contests:
   image:
     repository: europe-north1-docker.pkg.dev/nais-io/nais/images
     name: contests
-    tag: sha-71f8a38
+    tag: main
   ingresses: []
-  connect:
-    url:
   accessPolicy:
     enabled: true
   storage:

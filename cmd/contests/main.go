@@ -75,7 +75,6 @@ func init() {
 	flag.StringVar(&rgwAddress, "rgw-address", os.Getenv("RGW_ADDRESS"), "Ceph RGW objectstore address")
 	flag.StringVar(&rgwAccessKey, "rgw-access-key", os.Getenv("RGW_ACCESS_KEY"), "Ceph RGW objectstore access key")
 	flag.StringVar(&rgwSecretKey, "rgw-secret-key", os.Getenv("RGW_SECRET_KEY"), "Ceph RGW objectstore secret key")
-	flag.StringVar(&connectURL, "connect-url", os.Getenv("CONNECT_URL"), "URL to connect to with /connect")
 	flag.StringVar(&dbName, "db-name", defaultDbName, "database name")
 	flag.StringVar(&dbUser, "db-user", defaultDbUsername, "database username")
 	flag.StringVar(&dbPassword, "db-password", defaultDbPassword, "database password")
