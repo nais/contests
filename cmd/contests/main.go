@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"io"
 	"math/rand"
@@ -160,8 +159,6 @@ func main() {
 	})
 
 	r.HandleFunc("/connect", func(w http.ResponseWriter, _ *http.Request) {
-		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-
 		resp, err := http.Get(connectURL)
 		if err != nil {
 			log.Error("error performing http get with url", connectURL, err)
