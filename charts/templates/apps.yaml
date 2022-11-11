@@ -29,10 +29,10 @@ spec:
     requests:
       cpu: 100m
       memory: 64Mi
+  {{ if .Values.contests.storage.enabled }}
   env:
     - name: "BUCKET_NAME"
       value: "{{ .Chart.Name }}-{{ .Values.tenant }}-{{ .Values.env }}"
-  {{ if .Values.contests.storage.enabled }}
   gcp:
     buckets:
       - name: "{{ .Chart.Name }}-{{ .Values.tenant }}-{{ .Values.env }}"
