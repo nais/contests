@@ -1,10 +1,9 @@
 package kafka
 
 import (
-	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
+	"net/http"
 	"os"
 	"strings"
 
@@ -18,11 +17,7 @@ type Kafka struct {
 	brokers []*sarama.Broker
 }
 
-func (kafka *Kafka) Name() string {
-	return "kafka"
-}
-
-func NewKafkaTest(brokersString, caPath, certPath, keyPath string) (*Kafka, error) {
+func New(brokersString, caPath, certPath, keyPath string) (*Kafka, error) {
 	keypair, err := tls.LoadX509KeyPair(certPath, keyPath)
 	if err != nil {
 		log.Println(err)
@@ -59,29 +54,27 @@ func NewKafkaTest(brokersString, caPath, certPath, keyPath string) (*Kafka, erro
 	}, nil
 }
 
-func (kafka *Kafka) Init(_ context.Context) error {
-	return nil
-}
-
-func (kafka *Kafka) Cleanup() {
-	for _, b := range kafka.brokers {
-		_ = b.Close()
+func (k *Kafka) Handler() func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		for _, b := range k.brokers {
+			if err := b.Open(k.config); err != nil {
+				log.Errorf("opening connection to broker: %s: %s", b.Addr(), err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			connected, err := b.Connected()
+			if err != nil || !connected {
+				log.Errorf("verifying connection to broker: %s: %w", b.Addr(), err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			if err := b.Close(); err != nil {
+				log.Errorf("could not close connection: %w", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		}
+		log.Infof("Successfully connected to all Kafka brokers")
+		w.WriteHeader(http.StatusOK)
 	}
-}
-
-func (kafka *Kafka) Test(_ context.Context, data string) (string, error) {
-	for _, b := range kafka.brokers {
-		if err := b.Open(kafka.config); err != nil {
-			return "", fmt.Errorf("opening connection to broker: %s: %w", b.Addr(), err)
-		}
-		connected, err := b.Connected()
-		if err != nil || !connected {
-			return "", fmt.Errorf("verifying connection to broker: %s: %w", b.Addr(), err)
-
-		}
-		if err := b.Close(); err != nil {
-			return "", fmt.Errorf("could not close connection: %w", err)
-		}
-	}
-	return data, nil
 }
