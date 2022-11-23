@@ -53,7 +53,6 @@ func Handler(bucketName string) func(http.ResponseWriter, *http.Request) {
 		}
 
 		log.Info("Successfully wrote and read same data from bucket")
-
 		w.WriteHeader(http.StatusOK)
 	}
 }
