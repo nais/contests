@@ -1,12 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"os"
-	"strings"
 
-	_ "github.com/lib/pq"
 	"github.com/nais/contests/internal/bucket"
 	"github.com/nais/contests/internal/kafka"
 	log "github.com/sirupsen/logrus"
@@ -16,30 +13,15 @@ import (
 var (
 	bindAddr             string
 	bucketName           string
-	dbUser               string
-	dbPassword           string
-	dbHost               string
-	dbName               string
 	kafkaBrokers         string
 	kafkaCertificatePath string
 	kafkaPrivateKeyPath  string
 	kafkaCAPath          string
 )
 
-var (
-	dbAppName         = strings.ToUpper(strings.Replace(getEnv("NAIS_APP_NAME", "contests"), "-", "_", -1))
-	defaultDbPassword = os.Getenv(fmt.Sprintf("NAIS_DATABASE_%[1]s_%[1]s_PASSWORD", dbAppName))
-	defaultDbUsername = os.Getenv(fmt.Sprintf("NAIS_DATABASE_%[1]s_%[1]s_USERNAME", dbAppName))
-	defaultDbName     = os.Getenv(fmt.Sprintf("NAIS_DATABASE_%[1]s_%[1]s_DATABASE", dbAppName))
-)
-
 func init() {
 	flag.StringVar(&bindAddr, "bind-address", ":8080", "ip:port where http requests are served")
 	flag.StringVar(&bucketName, "bucket-name", os.Getenv("BUCKET_NAME"), "name of bucket")
-	flag.StringVar(&dbName, "db-name", defaultDbName, "database name")
-	flag.StringVar(&dbUser, "db-user", defaultDbUsername, "database username")
-	flag.StringVar(&dbPassword, "db-password", defaultDbPassword, "database password")
-	flag.StringVar(&dbHost, "db-hostname", "localhost", "database hostname")
 	flag.StringVar(&kafkaBrokers, "kafka-brokers", os.Getenv("KAFKA_BROKERS"), "kafka brokers")
 	flag.StringVar(&kafkaCertificatePath, "kafka-certificate-path", os.Getenv("KAFKA_CERTIFICATE_PATH"), "kafka certificate path")
 	flag.StringVar(&kafkaPrivateKeyPath, "kafka-private-key-path", os.Getenv("KAFKA_PRIVATE_KEY_PATH"), "kafka private key path")
@@ -71,12 +53,4 @@ func main() {
 	if err := http.ListenAndServe(bindAddr, nil); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func getEnv(key, fallback string) string {
-	if value, ok := os.LookupEnv(key); ok {
-		return value
-	}
-
-	return fallback
 }
