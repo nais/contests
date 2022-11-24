@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/Shopify/sarama"
 	log "github.com/sirupsen/logrus"
@@ -42,6 +43,7 @@ func New(brokersString, caPath, certPath, keyPath string) (*Kafka, error) {
 	config.Net.TLS.Enable = true
 	config.Net.TLS.Config = tlsConfig
 	config.Version = sarama.V0_10_2_0
+	config.Admin.Timeout = 5 * time.Second
 
 	brokers := make([]*sarama.Broker, 0)
 	for _, b := range strings.Split(brokersString, ",") {
@@ -64,17 +66,17 @@ func (k *Kafka) Handler() func(http.ResponseWriter, *http.Request) {
 			}
 			connected, err := b.Connected()
 			if err != nil || !connected {
-				log.Errorf("verifying connection to broker: %s: %w", b.Addr(), err)
+				log.Errorf("verifying connection to broker: %s: %s", b.Addr(), err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
+			log.Infof("Successfully connected to Kafka broker: %s", b.Addr())
 			if err := b.Close(); err != nil {
-				log.Errorf("could not close connection: %w", err)
+				log.Errorf("could not close connection: %s", err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 		}
-		log.Infof("Successfully connected to all Kafka brokers")
 		w.WriteHeader(http.StatusOK)
 	}
 }
