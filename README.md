@@ -2,7 +2,7 @@
 
 Connectivity tests for NAIS
 
-Returns http status code 200/OK on success
+Returns HTTP status code 200/OK on success
 
 ## endpoints
 
