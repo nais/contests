@@ -4,15 +4,6 @@ env:
   REGISTRY: europe-north1-docker.pkg.dev/nais-io/nais/images
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: asdf-vm/actions/install@v1
-        with:
-          asdf_branch: v0.10.0
-      - run: go version
-      - run: go test -cover -tags integration_test ./...
   build_and_push_contests:
     if: ${{ github.ref == 'refs/heads/main' }}
     needs: [test]

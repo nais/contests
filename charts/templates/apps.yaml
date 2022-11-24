@@ -12,22 +12,15 @@ spec:
         - application: {{ .Chart.Name }}-blackbox-exporter
   image: "{{ .Values.contests.image.repository }}/{{ .Values.contests.image.name }}:{{ .Values.contests.image.tag | default .Chart.AppVersion }}"
   port: 8080
-  liveness:
-    path: /ping
-  readiness:
-    path: /ping
   replicas:
-    min: 2
-    max: 2
-  prometheus:
-    enabled: true
-    path: /internal/metrics
+    min: 1
+    max: 1
   resources:
     limits:
       cpu: 250m
       memory: 256Mi
     requests:
-      cpu: 100m
+      cpu: 50m
       memory: 64Mi
   {{ if .Values.contests.storage.enabled }}
   env:
@@ -59,17 +52,10 @@ metadata:
   name: contests-noaccess
 spec:
   image: "{{ .Values.contests.image.repository }}/{{ .Values.contests.image.name }}:{{ .Values.contests.image.tag | default .Chart.AppVersion }}"
-  liveness:
-    path: /ping
   port: 8080
-  prometheus:
-    enabled: true
-    path: /internal/metrics
-  readiness:
-    path: /ping
   replicas:
-    max: 2
-    min: 2
+    max: 1
+    min: 1
   resources:
     limits:
       cpu: 100m
