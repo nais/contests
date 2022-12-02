@@ -7,8 +7,6 @@ COPY . /src
 WORKDIR /src
 RUN rm -f go.sum
 RUN go get ./...
-#No test files in contests
-#RUN go test ./...
 RUN make release
 
 FROM gcr.io/distroless/base

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 
@@ -62,6 +63,11 @@ func main() {
 	} else {
 		log.Infof("No database configuration detected, skipping handler")
 	}
+
+	http.HandleFunc("/ping", func(r http.ResponseWriter, _ *http.Request) {
+		fmt.Fprintf(r, "pong\n")
+		r.WriteHeader(http.StatusOK)
+	})
 
 	log.Infof("running @ %s", bindAddr)
 
