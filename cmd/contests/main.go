@@ -66,7 +66,6 @@ func main() {
 
 	http.HandleFunc("/ping", func(r http.ResponseWriter, _ *http.Request) {
 		fmt.Fprintf(r, "pong\n")
-		r.WriteHeader(http.StatusOK)
 	})
 
 	log.Infof("running @ %s", bindAddr)
