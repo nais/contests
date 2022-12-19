@@ -87,11 +87,11 @@ spec:
       static:
         - http://contests/ping
         {{- if .Values.contests.storage.enabled }}
-        - http://contests/database/test
-        - http://contests/bucket/test
+        - http://contests/database
+        - http://contests/bucket
         {{- end }}
         {{- if .Values.contests.kafka.enabled }}
-        - http://contests/kafka/test
+        - http://contests/kafka
         {{- end }}
         {{- if .Values.contests.accessPolicy.enabled }}
         - http://contests-noaccess/ping
