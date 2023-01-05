@@ -11,7 +11,7 @@ contests:
   storage:
     enabled: true
   kafka:
-    enabled: true
+    enabled: false
     pool:
 
 blackboxExporter:
