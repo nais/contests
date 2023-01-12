@@ -32,8 +32,7 @@ spec:
         - application: contests
       external:
         - host: dns.google
-        - host: www.google.com
-        - host: www.microsoft.com
+        - host: 1dot1dot1dot1.cloudflare-dns.com
   filesFrom:
     - configmap: {{ .Release.Name }}-blackbox-exporter
       mountPath: /etc/blackbox_exporter
