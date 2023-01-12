@@ -12,6 +12,7 @@ contests:
   kafka:
     enabled: false
     pool:
-
+alerts:
+  enabled: true
 blackboxExporter:
   additionalTargetURLs:

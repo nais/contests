@@ -1,0 +1,72 @@
+{{ if .Values.alerts.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: nais-contests-alerts
+spec:
+  groups:
+    - name: nais-contests-alerts
+      rules:
+        - alert: ExternalURLsFailed
+          expr: sum(probe_success{job="probe/nais-system/contests-probes", instance=~"https://.*"}) == 0
+          for: 5m
+          labels:
+            namespace: nais-system
+            severity: critical
+          annotations:
+            consequence: External URLs is unavailable
+            action: "Check external connectivity from cluster. `k exec -it contests-blackbox-exporter-<id> -- wget -O- <url>`"
+        {{- if .Values.contests.storage.enabled }}
+        - alert: DatabaseFailed
+          expr: probe_success{instance=~"http://contests/database"} == 0
+          for: 5m
+          labels:
+            namespace: nais-system
+            severity: critical
+          annotations:
+            consequence: Databases may be unavailable in cluster.
+            action: Check logs for contests appliction and cloudsql-proxy sidecar
+        - alert: BucketFailed
+          expr: probe_success{instance=~"http://contests/bucket"} == 0
+          for: 5m
+          labels:
+            namespace: nais-system
+            severity: critical
+          annotations:
+            consequence: Buckets may be unavailable in cluster.
+            action: Check logs for contests appliction
+        {{- end }}
+        {{- if .Values.contests.kafka.enabled }}
+        - alert: BucketFailed
+          expr: probe_success{instance=~"http://contests/kafka"} == 0
+          for: 5m
+          labels:
+            namespace: nais-system
+            severity: critical
+          annotations:
+            consequence: Kafka may be unavailable in cluster.
+            action: Check logs for contests appliction
+        {{- end }}
+        {{- if .Values.contests.accessPolicy.enabled }}
+        - alert: AccessPolicyAllowed
+          expr: probe_success{instance=~"http://contests/ping"} == 0
+          for: 5m
+          labels:
+            namespace: nais-system
+            severity: critical
+          annotations:
+            consequence: Access policies may not work correctly in cluster.
+            action: Check that access policies are configured correctly for contests and blackbox exporter.
+            summary: Blackbox exporter is unable to access 'contests' in cluster. This should be open according to configuration
+        - alert: AccessPolicyDeny
+          expr: probe_success{instance=~"http://contests-noaccess/ping"} == 1
+          for: 5m
+          labels:
+            namespace: nais-system
+            severity: critical
+          annotations:
+            consequence: Access policies may not work correctly in cluster.
+            action: Check that access policies are configured correctly for contests and blackbox exporter.
+            summary: Blackbox exporter is able to access 'contests-noaccess' in cluster when it shouldn't.
+        {{- end }}
+{{- end }}
