@@ -55,7 +55,7 @@ metadata:
     team: nais
   name: contests-noaccess
 spec:
-  image: "{{ .Values.contests.image.repository }}/{{ .Values.contests.image.name }}:{{ .Values.contests.image.tag | default .Chart.AppVersion }}"
+  image: "{{ .Values.contests.image.reposit .Chart.Version }}"
   port: 8080
   replicas:
     max: 1

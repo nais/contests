@@ -97,8 +97,7 @@ spec:
         - http://contests-noaccess/ping
         {{- end }}
         - https://dns.google
-        - https://www.google.com/
-        - https://www.microsoft.com/
+        - https://1dot1dot1dot1.cloudflare-dns.com
       {{range .Values.blackboxExporter.additionalTargetURLs }}
         - {{ . }}
       {{end}}
