@@ -4,7 +4,6 @@ contests:
   image:
     repository: europe-north1-docker.pkg.dev/nais-io/nais/images
     name: contests
-    tag: main
   ingresses: []
   accessPolicy:
     enabled: true
