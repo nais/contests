@@ -5,8 +5,8 @@ on:
       - main
 
 env:
+  NAME: contests
   REGISTRY: europe-north1-docker.pkg.dev/nais-io/nais/images
-  IMAGE_NAME: contests
 
 jobs:
   build:
@@ -27,7 +27,7 @@ jobs:
         uses: "google-github-actions/auth@v1"
         with:
           workload_identity_provider: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: "gh-contests@nais-io.iam.gserviceaccount.com"
+          service_account: "gh-${{ env.NAME }}@nais-io.iam.gserviceaccount.com"
           token_format: "access_token"
       - name: Set up Docker Buildx
         id: buildx
@@ -45,7 +45,7 @@ jobs:
           context: .
           file: Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.NEW_VERSION }},${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          tags: ${{ env.REGISTRY }}/${{ env.NAME }}:${{ env.NEW_VERSION }},${{ env.REGISTRY }}/${{ env.NAME }}:latest
           labels: |
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.version=${{ env.NEW_VERSION }}
@@ -62,4 +62,4 @@ jobs:
           helm package feature
       - name: Push Chart
         run: |-
-          helm push contests*.tgz oci://europe-north1-docker.pkg.dev/nais-io/nais
+          helm push ${{ env.NAME }}*.tgz oci://europe-north1-docker.pkg.dev/nais-io/nais
