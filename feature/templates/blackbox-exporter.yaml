@@ -76,6 +76,7 @@ metadata:
   name: {{ .Release.Name }}-probes
   labels:
     {{- include "contests.labels" . | nindent 4 }}
+    nais.io/prometheus: "nais"
 spec:
   interval: 60s
   module: http_2xx
