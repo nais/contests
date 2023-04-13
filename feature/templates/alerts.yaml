@@ -7,8 +7,8 @@ spec:
   groups:
     - name: nais-contests-alerts
       rules:
-        - alert: ExternalURLsFailed
-          expr: sum(probe_success{job="probe/nais-system/contests-probes", instance=~"https://.*"}) == 0
+        - alert: External URLs failing
+          expr: sum(probe_success{job="probe/nais-system/contests-probes", instance=~"https://.*dns.*"}) == 0
           for: 5m
           labels:
             namespace: nais-system
@@ -17,7 +17,7 @@ spec:
             consequence: External URLs is unavailable
             action: "Check external connectivity from cluster. `k exec -it contests-blackbox-exporter-<id> -- wget -O- <url>`"
         {{- if .Values.contests.storage.enabled }}
-        - alert: DatabaseFailed
+        - alert: Database connectivity test failing
           expr: probe_success{instance=~"http://contests/database"} == 0
           for: 5m
           labels:
@@ -26,7 +26,7 @@ spec:
           annotations:
             consequence: Databases may be unavailable in cluster.
             action: Check logs for contests appliction and cloudsql-proxy sidecar
-        - alert: BucketFailed
+        - alert: Bucket connectivity test failing
           expr: probe_success{instance=~"http://contests/bucket"} == 0
           for: 5m
           labels:
@@ -37,7 +37,7 @@ spec:
             action: Check logs for contests appliction
         {{- end }}
         {{- if .Values.contests.kafka.enabled }}
-        - alert: BucketFailed
+        - alert: Kafka connectivity test failing
           expr: probe_success{instance=~"http://contests/kafka"} == 0
           for: 5m
           labels:
@@ -48,7 +48,7 @@ spec:
             action: Check logs for contests appliction
         {{- end }}
         {{- if .Values.contests.accessPolicy.enabled }}
-        - alert: AccessPolicyAllowed
+        - alert: Access policy allowed service failing
           expr: probe_success{instance=~"http://contests/ping"} == 0
           for: 5m
           labels:
@@ -58,7 +58,7 @@ spec:
             consequence: Access policies may not work correctly in cluster.
             action: Check that access policies are configured correctly for contests and blackbox exporter.
             summary: Blackbox exporter is unable to access 'contests' in cluster. This should be open according to configuration
-        - alert: AccessPolicyDeny
+        - alert: Access policy denied service allowed
           expr: probe_success{instance=~"http://contests-noaccess/ping"} == 1
           for: 5m
           labels:
@@ -68,5 +68,15 @@ spec:
             consequence: Access policies may not work correctly in cluster.
             action: Check that access policies are configured correctly for contests and blackbox exporter.
             summary: Blackbox exporter is able to access 'contests-noaccess' in cluster when it shouldn't.
+        - alert: External URL allowed
+          expr: probe_success{instance="https://google.com"} == 1
+          for: 5m
+          labels:
+            namespace: nais-system
+            severity: critical
+          annotations:
+            consequence: Access policies may not work correctly in cluster.
+            action: Check that access policies are configured correctly for contests and blackbox exporter.
+            summary: Blackbox exporter is able to access 'https://google.com' when it shouldn't.
         {{- end }}
 {{- end }}

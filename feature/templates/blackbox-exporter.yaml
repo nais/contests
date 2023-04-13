@@ -95,6 +95,7 @@ spec:
         {{- end }}
         {{- if .Values.contests.accessPolicy.enabled }}
         - http://contests-noaccess/ping
+        - https://google.com
         {{- end }}
         - https://dns.google
         - https://1dot1dot1dot1.cloudflare-dns.com
