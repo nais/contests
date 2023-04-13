@@ -25,7 +25,7 @@ metadata:
     {{- include "contests.labels" . | nindent 4 }}
     team: nais
 spec:
-  image: prom/blackbox-exporter:v0.20.0
+  image: prom/blackbox-exporter:v0.23.0
   accessPolicy:
     outbound:
       rules:
