@@ -13,6 +13,7 @@ spec:
           labels:
             namespace: nais-system
             severity: critical
+            ping: nais-vakt
           annotations:
             consequence: External URLs is unavailable
             action: "Check external connectivity from cluster. `k exec -it contests-blackbox-exporter-<id> -- wget -O- <url>`"
@@ -23,6 +24,7 @@ spec:
           labels:
             namespace: nais-system
             severity: critical
+            ping: nais-vakt
           annotations:
             consequence: Databases may be unavailable in cluster.
             action: Check logs for contests appliction and cloudsql-proxy sidecar
@@ -32,6 +34,7 @@ spec:
           labels:
             namespace: nais-system
             severity: critical
+            ping: nais-vakt
           annotations:
             consequence: Buckets may be unavailable in cluster.
             action: Check logs for contests appliction
@@ -43,6 +46,7 @@ spec:
           labels:
             namespace: nais-system
             severity: critical
+            ping: nais-vakt
           annotations:
             consequence: Kafka may be unavailable in cluster.
             action: Check logs for contests appliction
@@ -54,6 +58,7 @@ spec:
           labels:
             namespace: nais-system
             severity: critical
+            ping: nais-vakt
           annotations:
             consequence: Access policies may not work correctly in cluster.
             action: Check that access policies are configured correctly for contests and blackbox exporter.
@@ -64,6 +69,7 @@ spec:
           labels:
             namespace: nais-system
             severity: critical
+            ping: nais-vakt
           annotations:
             consequence: Access policies may not work correctly in cluster.
             action: Check that access policies are configured correctly for contests and blackbox exporter.
@@ -74,6 +80,7 @@ spec:
           labels:
             namespace: nais-system
             severity: critical
+            ping: nais-vakt
           annotations:
             consequence: Access policies may not work correctly in cluster.
             action: Check that access policies are configured correctly for contests and blackbox exporter.
