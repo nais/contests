@@ -40,7 +40,7 @@ jobs:
           password: "${{ steps.auth.outputs.access_token }}"
       - name: Build and push
         if: github.ref == 'refs/heads/main'
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           context: .
           file: Dockerfile
@@ -51,7 +51,7 @@ jobs:
             org.opencontainers.image.version=${{ env.NEW_VERSION }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      - uses: azure/setup-helm@v1
+      - uses: azure/setup-helm@v3
         name: "Setup Helm"
         with:
           version: "3.8.0"

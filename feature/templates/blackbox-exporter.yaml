@@ -25,7 +25,7 @@ metadata:
     {{- include "contests.labels" . | nindent 4 }}
     team: nais
 spec:
-  image: prom/blackbox-exporter:v0.20.0
+  image: prom/blackbox-exporter:v0.23.0
   accessPolicy:
     outbound:
       rules:
@@ -76,6 +76,7 @@ metadata:
   name: {{ .Release.Name }}-probes
   labels:
     {{- include "contests.labels" . | nindent 4 }}
+    nais.io/prometheus: "nais"
 spec:
   interval: 60s
   module: http_2xx
@@ -94,6 +95,7 @@ spec:
         {{- end }}
         {{- if .Values.contests.accessPolicy.enabled }}
         - http://contests-noaccess/ping
+        - https://google.com
         {{- end }}
         - https://dns.google
         - https://1dot1dot1dot1.cloudflare-dns.com
