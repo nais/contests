@@ -1,13 +1,10 @@
-FROM golang:1.19.1-alpine as builder
+FROM golang:1.20.3-alpine as builder
 RUN apk add --no-cache git make
-ENV GOOS=linux
-ENV CGO_ENABLED=0
-ENV GO111MODULE=on
 COPY . /src
 WORKDIR /src
 RUN rm -f go.sum
 RUN go get ./...
-RUN make release
+RUN make linux-binary
 
 FROM gcr.io/distroless/base
 WORKDIR /app

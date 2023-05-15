@@ -32,9 +32,9 @@ func init() {
 	flag.StringVar(&kafkaCertificatePath, "kafka-certificate-path", os.Getenv("KAFKA_CERTIFICATE_PATH"), "kafka certificate path")
 	flag.StringVar(&kafkaPrivateKeyPath, "kafka-private-key-path", os.Getenv("KAFKA_PRIVATE_KEY_PATH"), "kafka private key path")
 	flag.StringVar(&kafkaCAPath, "kafka-ca-path", os.Getenv("KAFKA_CA_PATH"), "kafka ca path")
-	flag.StringVar(&dbUser, "db-username", os.Getenv("NAIS_DATABASE_CONTESTS_CONTESTS_USERNAME"), "database username")
-	flag.StringVar(&dbPassword, "db-password", os.Getenv("NAIS_DATABASE_CONTESTS_CONTESTS_PASSWORD"), "database password")
-	flag.StringVar(&dbHost, "db-host", os.Getenv("NAIS_DATABASE_CONTESTS_CONTESTS_HOST"), "database host")
+	flag.StringVar(&dbUser, "db-username", os.Getenv("NAIS_DATABASE_MIGRATION_TEST_CONTESTS_USERNAME"), "database username")
+	flag.StringVar(&dbPassword, "db-password", os.Getenv("NAIS_DATABASE_MIGRATION_TEST_CONTESTS_PASSWORD"), "database password")
+	flag.StringVar(&dbHost, "db-host", os.Getenv("NAIS_DATABASE_MIGRATION_TEST_CONTESTS_HOST"), "database host")
 	flag.Parse()
 }
 
