@@ -1,10 +1,12 @@
-tenant: "tenant"
-env: "env"
+fasit:
+  tenant:
+    name: "tenant"
+  env:
+    name: "env"
 contests:
   image:
     repository: europe-north1-docker.pkg.dev/nais-io/nais/images
     name: contests
-  ingresses: []
   accessPolicy:
     enabled: true
   storage:

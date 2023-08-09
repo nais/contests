@@ -1,0 +1,23 @@
+dependencies:
+  - allOf:
+    - monitoring
+environmentKinds:
+  - tenant
+  - legacy
+values:
+  blackboxExporter.additionalTargetURLs:
+    displayName: Additional Target URLs
+    config:
+      type: string_array
+  contests.kafka.enabled:
+    displayName: Enable Kafka checks
+    config:
+      type: bool
+  contests.kafka.pool:
+    displayName: Kafka pool
+    computed:
+      template: '"{{ .Env.aiven_project }}"'
+  contests.storage.enabled:
+    displayName: Enable storage checks (GCP postgres + bucket)
+    config:
+      type: bool
