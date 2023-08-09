@@ -27,7 +27,7 @@ jobs:
       - uses: azure/setup-helm@v3
         name: "Setup Helm"
         with:
-          version: "3.8.0"
+          version: "3.12.0"
       - name: Build Chart
         run: |-
           sed -i "s/^version: .*/version: ${{ steps.build-push-sign.outputs.version }}/g" charts/Chart.yaml
