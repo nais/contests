@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
 
+	bq "cloud.google.com/go/bigquery"
 	_ "github.com/lib/pq"
+	"github.com/nais/contests/internal/bigquery"
 	"github.com/nais/contests/internal/bucket"
 	"github.com/nais/contests/internal/database"
 	"github.com/nais/contests/internal/kafka"
@@ -23,6 +26,8 @@ var (
 	dbUser               string
 	dbPassword           string
 	dbHost               string
+	bigQueryDatasetName  string
+	bigQueryProjectID    string
 )
 
 func init() {
@@ -35,10 +40,13 @@ func init() {
 	flag.StringVar(&dbUser, "db-username", os.Getenv("NAIS_DATABASE_CONTESTS_CONTESTS_USERNAME"), "database username")
 	flag.StringVar(&dbPassword, "db-password", os.Getenv("NAIS_DATABASE_CONTESTS_CONTESTS_PASSWORD"), "database password")
 	flag.StringVar(&dbHost, "db-host", os.Getenv("NAIS_DATABASE_CONTESTS_CONTESTS_HOST"), "database host")
+	flag.StringVar(&bigQueryDatasetName, "bigquery-dataset-name", os.Getenv("BIGQUERY_DATASET_NAME"), "name of bigquery dataset")
+	flag.StringVar(&bigQueryProjectID, "bigquery-project-id", os.Getenv("GCP_TEAM_PROJECT_ID"), "project id of bigquery dataset")
 	flag.Parse()
 }
 
 func main() {
+	ctx := context.Background()
 	if bucketName != "" {
 		log.Infof("Detected bucket configuration, setting up handler for %s", bucketName)
 		http.HandleFunc("/bucket", bucket.Handler(bucketName))
@@ -62,6 +70,21 @@ func main() {
 		http.HandleFunc("/database", database.Handler(dbUser, dbPassword, dbHost))
 	} else {
 		log.Infof("No database configuration detected, skipping handler")
+	}
+
+	if bigQueryDatasetName != "" && bigQueryProjectID != "" {
+		log.Info("Detected BigQuery configuration, setting up handler")
+
+		bqClient, err := bq.NewClient(ctx, bigQueryProjectID)
+		if err != nil {
+			dataset := bqClient.Dataset(bigQueryDatasetName)
+			http.HandleFunc("/bigquery", bigquery.Handler(ctx, dataset))
+		} else {
+			log.Errorf("set up BigQuery client: %v", err)
+		}
+
+	} else {
+		log.Info("No BigQuery configuration detected, skipping handler")
 	}
 
 	http.HandleFunc("/ping", func(r http.ResponseWriter, _ *http.Request) {

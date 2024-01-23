@@ -26,17 +26,32 @@ spec:
     requests:
       cpu: 50m
       memory: 64Mi
-  {{ if .Values.contests.storage.enabled }}
+  {{- or .Values.contests.storage.enabled .Values.contests.bigquery.enabled }}
   env:
+    {{- if .Values.contests.storage.enabled }}
     - name: "BUCKET_NAME"
       value: "{{ .Chart.Name }}-{{ .Values.fasit.tenant.name }}-{{ .Values.fasit.env.name }}"
+    {{- end }}
+    {{- if .Values.contests.bigquery.enabled }}
+    - name: "BIGQUERY_DATASET_NAME"
+      value: contests
+    {{- end }}
+  {{- end }}
+  {{- or .Values.contests.storage.enabled .Values.contests.bigquery.enabled }}
   gcp:
+    {{- if .Values.contests.storage.enabled }}
     buckets:
       - name: "{{ .Chart.Name }}-{{ .Values.fasit.tenant.name }}-{{ .Values.fasit.env.name }}"
     sqlInstances:
       - type: POSTGRES_14
         databases:
           - name: contests
+    {{- end }}
+    {{- if .Values.contests.bigquery.enabled }}
+    bigQueryDatasets:
+      - name: contests
+        permission: READWRITE
+    {{- end }}
   {{ end }}
   {{ if .Values.contests.kafka.enabled }}
   kafka:
