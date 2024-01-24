@@ -90,6 +90,9 @@ spec:
         - http://contests/database
         - http://contests/bucket
         {{- end }}
+        {{- if .Values.contests.bigquery.enabled }}
+        - http://contests/bigquery
+        {{- end }}
         {{- if .Values.contests.kafka.enabled }}
         - http://contests/kafka
         {{- end }}

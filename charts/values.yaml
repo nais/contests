@@ -11,6 +11,8 @@ contests:
     enabled: true
   storage:
     enabled: true
+  bigquery:
+    enabled: false
   kafka:
     enabled: false
     pool:
