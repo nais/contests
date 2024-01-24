@@ -21,3 +21,7 @@ values:
     displayName: Enable storage checks (GCP postgres + bucket)
     config:
       type: bool
+  contests.bigquery.enabled:
+    displayName: Enable BigQuery checks
+    config:
+      type: bool
