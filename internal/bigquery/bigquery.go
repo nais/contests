@@ -28,7 +28,7 @@ func Handler(ctx context.Context, dataset *bigquery.Dataset) func(http.ResponseW
 			return
 		}
 
-		table := dataset.Table(fmt.Sprintf("%s", now))
+		table := dataset.Table(fmt.Sprintf("%s", now.Unix()))
 		md := &bigquery.TableMetadata{
 			ExpirationTime: time.Now().Add(time.Minute),
 			Schema:         schema,
