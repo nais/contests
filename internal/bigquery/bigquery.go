@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"cloud.google.com/go/bigquery"
@@ -28,7 +29,8 @@ func Handler(ctx context.Context, dataset *bigquery.Dataset) func(http.ResponseW
 			return
 		}
 
-		table := dataset.Table(fmt.Sprintf("%s", now.Unix()))
+		timestamp := strconv.FormatInt(now.Unix(), 10)
+		table := dataset.Table(timestamp)
 		md := &bigquery.TableMetadata{
 			ExpirationTime: time.Now().Add(time.Minute),
 			Schema:         schema,
