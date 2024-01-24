@@ -73,16 +73,14 @@ func main() {
 	}
 
 	if bigQueryDatasetName != "" && bigQueryProjectID != "" {
-		log.Info("Detected BigQuery configuration, setting up handler")
-
 		bqClient, err := bq.NewClient(ctx, bigQueryProjectID)
 		if err != nil {
+			log.Errorf("Detected BigQuery contiguration, but failed to set up client: %v", err)
+		} else {
+			log.Infof("Detected BigQuery configuration, setting up handler for %v in project %v", bigQueryDatasetName, bigQueryProjectID)
 			dataset := bqClient.Dataset(bigQueryDatasetName)
 			http.HandleFunc("/bigquery", bigquery.Handler(ctx, dataset))
-		} else {
-			log.Errorf("set up BigQuery client: %v", err)
 		}
-
 	} else {
 		log.Info("No BigQuery configuration detected, skipping handler")
 	}
