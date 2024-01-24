@@ -26,7 +26,7 @@ spec:
     requests:
       cpu: 50m
       memory: 64Mi
-  {{- or .Values.contests.storage.enabled .Values.contests.bigquery.enabled }}
+  {{- if (or .Values.contests.storage.enabled .Values.contests.bigquery.enabled) }}
   env:
     {{- if .Values.contests.storage.enabled }}
     - name: "BUCKET_NAME"
@@ -37,7 +37,7 @@ spec:
       value: contests
     {{- end }}
   {{- end }}
-  {{- or .Values.contests.storage.enabled .Values.contests.bigquery.enabled }}
+  {{- if (or .Values.contests.storage.enabled .Values.contests.bigquery.enabled) }}
   gcp:
     {{- if .Values.contests.storage.enabled }}
     buckets:
