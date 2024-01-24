@@ -3,3 +3,5 @@ name: contests
 description: nais connectivity tests
 type: application
 version: 1.0.3
+sources:
+  - https://github.com/nais/contests/tree/main/charts
