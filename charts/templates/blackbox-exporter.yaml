@@ -93,6 +93,9 @@ spec:
         {{- if .Values.contests.bigquery.enabled }}
         - http://contests/bigquery
         {{- end }}
+        {{- if .Values.contests.opensearch.enabled }}
+        - http://contests/opensearch
+        {{- end }}
         {{- if .Values.contests.kafka.enabled }}
         - http://contests/kafka
         {{- end }}

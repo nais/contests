@@ -29,7 +29,7 @@ func Handler(ctx context.Context, client *opensearch.Client) func(http.ResponseW
 			return
 		}
 		defer rs.Body.Close()
-		log.Info("Successfully created document to opensearch: %v", rs)
+		log.Info("Successfully created document in opensearch")
 
 		// Retrieving same document
 		getRequest := opensearchapi.GetRequest{
@@ -42,7 +42,7 @@ func Handler(ctx context.Context, client *opensearch.Client) func(http.ResponseW
 			http.Error(w, fmt.Sprintf("get document: %v", err), http.StatusInternalServerError)
 			return
 		}
-		log.Info("Successfully read document from opensearch: %v", rs)
+		log.Info("Successfully read document from opensearch")
 
 		w.WriteHeader(http.StatusOK)
 	}
