@@ -1,0 +1,15 @@
+{{- if .Values.contests.kafka.enabled }}
+apiVersion: kafka.nais.io/v1
+kind: Topic
+metadata:
+  name: contests
+  labels:
+    {{- include "contests.labels" . | nindent 4 }}
+    team: nais
+spec:
+  acl:
+  - access: readwrite
+    application: contests
+    team: nais-system
+  pool: {{ .Values.contests.kafka.pool }}
+{{- end }}
