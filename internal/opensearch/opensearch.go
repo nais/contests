@@ -16,17 +16,29 @@ func Handler(ctx context.Context, client *opensearch.Client) func(http.ResponseW
 	return func(w http.ResponseWriter, _ *http.Request) {
 		// Create index contests
 		indexName := "contests"
-		rs, err := client.Indices.Create(indexName)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("create index: %v", err), http.StatusInternalServerError)
-			return
+		indexCreateRequest := opensearchapi.CreateRequest{
+			Index: indexName,
 		}
-		log.Infof("Successfully created index: %v", rs)
-
+		rs, err := indexCreateRequest.Do(ctx, client)
+		if err != nil && rs.StatusCode == 400 {
+			log.Info("Index already exists")
+		} else {
+			_, err = client.Indices.Create(indexName)
+			if err != nil {
+				http.Error(w, fmt.Sprintf("create index: %v", err), http.StatusInternalServerError)
+				return
+			}
+			log.Info("Successfully created index")
+		}
 		// Create document
 		epoch := fmt.Sprintf("%d", time.Now().UnixNano())
 		document := strings.NewReader(`{ "Application": "contests" }`)
-		rs, err = client.Create(indexName, epoch, document)
+		documentCreateRequest := opensearchapi.CreateRequest{
+			Index:      indexName,
+			DocumentID: epoch,
+			Body:       document,
+		}
+		rs, err = documentCreateRequest.Do(ctx, client)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("create document: %v", err), http.StatusInternalServerError)
 			return
