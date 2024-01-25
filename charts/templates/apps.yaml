@@ -64,7 +64,7 @@ spec:
   {{ if .Values.contests.opensearch.enabled }}
   openSearch:
     access: readwrite
-    instance: contests
+    instance: opensearch-{{ .Release.Namespace }}-{{ .Release.Name }}
   {{ end }}
   ingresses:
     - https://contests.{{ .Values.fasit.env.name }}.{{ .Values.fasit.tenant.name }}.cloud.nais.io
