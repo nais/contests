@@ -38,7 +38,7 @@ spec:
     {{- end }}
     {{- if .Values.contests.kafka.enabled }}
     - name: "KAFKA_TOPIC"
-      value: ${{ .Release.namespace }}.contests
+      value: {{ .Release.Namespace }}.contests
     {{- end }}
   {{- end }}
   {{- if (or .Values.contests.storage.enabled .Values.contests.bigquery.enabled) }}
