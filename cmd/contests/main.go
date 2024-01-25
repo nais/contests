@@ -107,13 +107,13 @@ func main() {
 			Password:  opensearchPassword,
 		})
 		if err != nil {
-			log.Errorf("Detected ppensearch contiguration, but failed to set up client: %v", err)
+			log.Errorf("Detected opensearch contiguration, but failed to set up client: %v", err)
 		} else {
 			log.Info("Detected opensearch configuration, setting up handler")
 			http.HandleFunc("/opensearch", opensearch.Handler(ctx, client))
 		}
 	} else {
-		log.Info("No OpenSearch configuration detected, skipping handler")
+		log.Info("No opensearch configuration detected, skipping handler")
 	}
 
 	http.HandleFunc("/ping", func(r http.ResponseWriter, _ *http.Request) {

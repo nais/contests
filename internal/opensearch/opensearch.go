@@ -16,34 +16,35 @@ func Handler(ctx context.Context, client *opensearch.Client) func(http.ResponseW
 	return func(w http.ResponseWriter, _ *http.Request) {
 		// Create index contests
 		indexName := "contests"
-		_, err := client.Indices.Create(indexName)
+		rs, err := client.Indices.Create(indexName)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("create index: %v", err), http.StatusInternalServerError)
 			return
 		}
+		log.Infof("Successfully created index: %v", rs)
 
 		// Create document
 		epoch := fmt.Sprintf("%d", time.Now().UnixNano())
 		document := strings.NewReader(`{ "Application": "contests" }`)
-		_, err = client.Create(indexName, epoch, document)
+		rs, err = client.Create(indexName, epoch, document)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("create document: %v", err), http.StatusInternalServerError)
 			return
 		}
-		log.Info("Successfully wrote to opensearch")
+		log.Info("Successfully wrote document to opensearch: %v", rs)
 
 		// Retrieving same document
 		getRequest := opensearchapi.GetRequest{
 			Index:      indexName,
 			DocumentID: epoch,
 		}
-		_, err = getRequest.Do(ctx, client)
+		rs, err = getRequest.Do(ctx, client)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("get document: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		log.Info("Successfully read from opensearch")
+		log.Info("Successfully read document from opensearch: %v", rs)
 		w.WriteHeader(http.StatusOK)
 	}
 }
