@@ -26,7 +26,7 @@ spec:
     requests:
       cpu: 50m
       memory: 64Mi
-  {{- if (or .Values.contests.storage.enabled .Values.contests.bigquery.enabled) }}
+  {{- if (has true (list .Values.contests.storage.enabled .Values.contests.bigquery.enabled .Values.contests.kafka.enabled)) }}
   env:
     {{- if .Values.contests.storage.enabled }}
     - name: "BUCKET_NAME"
@@ -34,6 +34,10 @@ spec:
     {{- end }}
     {{- if .Values.contests.bigquery.enabled }}
     - name: "BIGQUERY_DATASET_NAME"
+      value: contests
+    {{- end }}
+    {{- if .Values.contests.kafka.enabled }}
+    - name: "KAFKA_TOPIC"
       value: contests
     {{- end }}
   {{- end }}

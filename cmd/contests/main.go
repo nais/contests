@@ -20,9 +20,10 @@ var (
 	bindAddr             string
 	bucketName           string
 	kafkaBrokers         string
+	kafkaCAPath          string
 	kafkaCertificatePath string
 	kafkaPrivateKeyPath  string
-	kafkaCAPath          string
+	kafkaTopic           string
 	dbUser               string
 	dbPassword           string
 	dbHost               string
@@ -34,9 +35,10 @@ func init() {
 	flag.StringVar(&bindAddr, "bind-address", ":8080", "ip:port where http requests are served")
 	flag.StringVar(&bucketName, "bucket-name", os.Getenv("BUCKET_NAME"), "name of bucket")
 	flag.StringVar(&kafkaBrokers, "kafka-brokers", os.Getenv("KAFKA_BROKERS"), "kafka brokers")
+	flag.StringVar(&kafkaCAPath, "kafka-ca-path", os.Getenv("KAFKA_CA_PATH"), "kafka ca path")
 	flag.StringVar(&kafkaCertificatePath, "kafka-certificate-path", os.Getenv("KAFKA_CERTIFICATE_PATH"), "kafka certificate path")
 	flag.StringVar(&kafkaPrivateKeyPath, "kafka-private-key-path", os.Getenv("KAFKA_PRIVATE_KEY_PATH"), "kafka private key path")
-	flag.StringVar(&kafkaCAPath, "kafka-ca-path", os.Getenv("KAFKA_CA_PATH"), "kafka ca path")
+	flag.StringVar(&kafkaTopic, "contests", os.Getenv("KAFKA_TOPIC"), "kafka topic")
 	flag.StringVar(&dbUser, "db-username", os.Getenv("NAIS_DATABASE_CONTESTS_CONTESTS_USERNAME"), "database username")
 	flag.StringVar(&dbPassword, "db-password", os.Getenv("NAIS_DATABASE_CONTESTS_CONTESTS_PASSWORD"), "database password")
 	flag.StringVar(&dbHost, "db-host", os.Getenv("NAIS_DATABASE_CONTESTS_CONTESTS_HOST"), "database host")
@@ -56,7 +58,7 @@ func main() {
 
 	if kafkaBrokers != "" && kafkaCertificatePath != "" && kafkaPrivateKeyPath != "" && kafkaCAPath != "" {
 		log.Info("Detected Kafka configuration, setting up handler")
-		k, err := kafka.New(kafkaBrokers, kafkaCAPath, kafkaCertificatePath, kafkaPrivateKeyPath)
+		k, err := kafka.New(kafkaBrokers, kafkaCAPath, kafkaCertificatePath, kafkaPrivateKeyPath, kafkaTopic)
 		if err != nil {
 			log.Errorf("Initializing Kafka: %s", err)
 		}
