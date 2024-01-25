@@ -88,6 +88,7 @@ func (k *Kafka) Handler() func(http.ResponseWriter, *http.Request) {
 		if err != nil {
 			log.Errorf("could not create kafka producer: %s", err)
 			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 		msg := &sarama.ProducerMessage{
 			Topic: k.topic,
@@ -95,15 +96,26 @@ func (k *Kafka) Handler() func(http.ResponseWriter, *http.Request) {
 			Value: sarama.StringEncoder(ts),
 		}
 		p, o, err := producer.SendMessage(msg)
-		log.Infof("produces message to kafka topic: %s (partition: %d, offset: %d)", "", p, o)
+		if err != nil {
+			log.Errorf("could not produce message to topic (%s): %s", k.topic, err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		log.Infof("produced message to kafka topic: %s (partition: %d, offset: %d)", "", p, o)
 
 		consumer, err := sarama.NewConsumer(k.brokers, k.config)
 		if err != nil {
 			log.Errorf("could not create kafka consumer: %s", err)
 			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 
 		c, err := consumer.ConsumePartition(k.topic, p, o)
+		if err != nil {
+			log.Errorf("could not consume partition (%s) from topic (%s): %s", p, k.topic, err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		consumedMessage := <-c.Messages()
 
 		consumedValue := string(consumedMessage.Value)
