@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/bigquery v1.58.0
 	cloud.google.com/go/storage v1.36.0
 	github.com/lib/pq v1.10.7
-	github.com/sirupsen/logrus v1.9.0
+	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/pflag v1.0.5
 	google.golang.org/api v0.155.0 // indirect
 )
