@@ -3,7 +3,7 @@ kind: OpenSearch
 metadata:
   labels:
     team: nais
-  name: contests
+  name: opensearch-{{ .Release.Namespace }}-{{ .Release.Name }}
 spec:
   plan: hobbyist
   project: {{ .Values.contests.opensearch.project }}
