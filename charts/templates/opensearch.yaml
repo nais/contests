@@ -1,3 +1,4 @@
+{{- if .Values.contests.opensearch.enabled }}
 apiVersion: aiven.io/v1alpha1
 kind: OpenSearch
 metadata:
@@ -7,3 +8,4 @@ metadata:
 spec:
   plan: hobbyist
   project: {{ .Values.contests.opensearch.project }}
+{{- end }}
