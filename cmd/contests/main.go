@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	_ "crypto/tls"
 	"fmt"
+	"github.com/nais/contests/internal/opensearch"
 	"net/http"
 	"os"
 
@@ -12,6 +15,7 @@ import (
 	"github.com/nais/contests/internal/bucket"
 	"github.com/nais/contests/internal/database"
 	"github.com/nais/contests/internal/kafka"
+	osgo "github.com/opensearch-project/opensearch-go"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 )
@@ -29,6 +33,9 @@ var (
 	dbHost               string
 	bigQueryDatasetName  string
 	bigQueryProjectID    string
+	opensearchUri        string
+	opensearchUser       string
+	opensearchPassword   string
 )
 
 func init() {
@@ -44,6 +51,9 @@ func init() {
 	flag.StringVar(&dbHost, "db-host", os.Getenv("NAIS_DATABASE_CONTESTS_CONTESTS_HOST"), "database host")
 	flag.StringVar(&bigQueryDatasetName, "bigquery-dataset-name", os.Getenv("BIGQUERY_DATASET_NAME"), "name of bigquery dataset")
 	flag.StringVar(&bigQueryProjectID, "bigquery-project-id", os.Getenv("GCP_TEAM_PROJECT_ID"), "project id of bigquery dataset")
+	flag.StringVar(&opensearchUri, "opensearch-uri", os.Getenv("OPEN_SEARCH_URI"), "opensearch uri")
+	flag.StringVar(&opensearchUser, "opensearch-username", os.Getenv("OPEN_SEARCH_USERNAME"), "opensearch username")
+	flag.StringVar(&opensearchPassword, "opensearch-password", os.Getenv("OPEN_SEARCH_PASSWORD"), "opensearch password")
 	flag.Parse()
 }
 
@@ -85,6 +95,25 @@ func main() {
 		}
 	} else {
 		log.Info("No BigQuery configuration detected, skipping handler")
+	}
+
+	if opensearchUri != "" && opensearchUser != "" && opensearchPassword != "" {
+		client, err := osgo.NewClient(osgo.Config{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			},
+			Addresses: []string{opensearchUri},
+			Username:  opensearchUser,
+			Password:  opensearchPassword,
+		})
+		if err != nil {
+			log.Errorf("Detected ppensearch contiguration, but failed to set up client: %v", err)
+		} else {
+			log.Info("Detected opensearch configuration, setting up handler")
+			http.HandleFunc("/opensearch", opensearch.Handler(ctx, client))
+		}
+	} else {
+		log.Info("No OpenSearch configuration detected, skipping handler")
 	}
 
 	http.HandleFunc("/ping", func(r http.ResponseWriter, _ *http.Request) {

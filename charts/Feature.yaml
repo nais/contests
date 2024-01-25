@@ -17,11 +17,19 @@ values:
     displayName: Kafka pool
     computed:
       template: '"{{ .Env.aiven_project }}"'
+  contests.opensearch.project:
+    displayName: OpenSearch project
+    computed:
+      template: '"{{ .Env.aiven_project }}"'
   contests.storage.enabled:
     displayName: Enable storage checks (GCP postgres + bucket)
     config:
       type: bool
   contests.bigquery.enabled:
     displayName: Enable BigQuery checks
+    config:
+      type: bool
+  contests.opensearch.enabled:
+    displayName: Enable OpenSearch checks
     config:
       type: bool

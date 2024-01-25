@@ -1,0 +1,9 @@
+apiVersion: aiven.io/v1alpha1
+kind: OpenSearch
+metadata:
+  labels:
+    team: nais
+  name: contests
+spec:
+  plan: hobbyist
+  project: {{ .Values.contests.opensearch.project }}

@@ -16,6 +16,9 @@ contests:
   kafka:
     enabled: false
     pool:
+  opensearch:
+    enabled: false
+    project:
 alerts:
   enabled: true
 blackboxExporter:

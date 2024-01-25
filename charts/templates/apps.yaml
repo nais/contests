@@ -61,6 +61,11 @@ spec:
   kafka:
     pool: {{ .Values.contests.kafka.pool }}
   {{ end }}
+  {{ if .Values.contests.opensearch.enabled }}
+  openSearch:
+    access: readwrite
+    instance: contests
+  {{ end }}
   ingresses:
     - https://contests.{{ .Values.fasit.env.name }}.{{ .Values.fasit.tenant.name }}.cloud.nais.io
 

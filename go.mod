@@ -11,7 +11,10 @@ require (
 	google.golang.org/api v0.155.0 // indirect
 )
 
-require github.com/Shopify/sarama v1.38.1
+require (
+	github.com/Shopify/sarama v1.38.1
+	github.com/opensearch-project/opensearch-go v1.1.0
+)
 
 require (
 	cloud.google.com/go v0.111.0 // indirect
