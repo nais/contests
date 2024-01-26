@@ -74,6 +74,7 @@ spec:
   azure:
     application:
       enabled: {{ .Values.contests.azureApp.enabled }}
+      tenant: nav.no
   ingresses:
     - https://contests.{{ .Values.fasit.env.name }}.{{ .Values.fasit.tenant.name }}.cloud.nais.io
 
