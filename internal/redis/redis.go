@@ -29,7 +29,5 @@ func Handler(ctx context.Context, client *redis.Client) func(http.ResponseWriter
 			return
 		}
 		log.Info("Successfully read value from redis")
-
 	}
-
 }
