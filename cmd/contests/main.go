@@ -121,13 +121,15 @@ func main() {
 	}
 
 	if redisUri != "" && redisUser != "" && redisPassword != "" {
-		client := redgo.NewClient(&redgo.Options{
-			Addr:     redisUri,
-			Username: redisUser,
-			Password: redisPassword, // no password set
-			DB:       0,             // use default DB
-		})
-		log.Info("Detected redis configuration, setting up handler")
+		redisOpts, err := redgo.ParseURL(redisUri)
+		if err != nil {
+			log.Errorf("Detected redis configuration, but failed to parse URI: %v", err)
+		}
+		redisOpts.Username = redisUser
+		redisOpts.Password = redisPassword
+
+		client := redgo.NewClient(redisOpts)
+		log.Info("Detected redis configuration, setting up handler with address: %v", redisOpts.Addr)
 		http.HandleFunc("/redis", redis.Handler(ctx, client))
 	} else {
 		log.Info("No redis configuration detected, skipping handler")
