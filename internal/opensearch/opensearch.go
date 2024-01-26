@@ -56,6 +56,7 @@ func Handler(ctx context.Context, client *opensearch.Client) func(http.ResponseW
 			http.Error(w, fmt.Sprintf("delete document: %v", err), http.StatusInternalServerError)
 			return
 		}
+		log.Info("Successfully deleted document from opensearch")
 
 		w.WriteHeader(http.StatusOK)
 	}
