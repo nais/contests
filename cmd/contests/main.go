@@ -40,6 +40,7 @@ var (
 	redisUri             string
 	redisUser            string
 	redisPassword        string
+	azureAppClientID     string
 )
 
 func init() {
@@ -61,6 +62,7 @@ func init() {
 	flag.StringVar(&redisUri, "redis-uri", os.Getenv("REDIS_URI_SESSIONS"), "redis uri")
 	flag.StringVar(&redisUser, "redis-username", os.Getenv("REDIS_USERNAME_SESSIONS"), "redis username")
 	flag.StringVar(&redisPassword, "redis-password", os.Getenv("REDIS_PASSWORD_SESSIONS"), "redis password")
+	flag.StringVar(&azureAppClientID, "azure-app-client-id", os.Getenv("AZURE_APP_CLIENT_ID"), "azure app client id")
 	flag.Parse()
 }
 
@@ -129,10 +131,18 @@ func main() {
 		redisOpts.Password = redisPassword
 
 		client := redgo.NewClient(redisOpts)
-		log.Info("Detected redis configuration, setting up handler with address: %v", redisOpts.Addr)
+		log.Info("Detected redis configuration, setting up handler")
 		http.HandleFunc("/redis", redis.Handler(ctx, client))
 	} else {
 		log.Info("No redis configuration detected, skipping handler")
+	}
+
+	if azureAppClientID != "" {
+		log.Info("Detected Azure app configuration, setting up handler")
+		http.HandleFunc("/azure", func(w http.ResponseWriter, _ *http.Request) {
+			fmt.Fprintf(w, "Azure app client id: %s", azureAppClientID)
+			log.Info("Successfully returned Azure app client id")
+		})
 	}
 
 	http.HandleFunc("/ping", func(r http.ResponseWriter, _ *http.Request) {

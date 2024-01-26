@@ -71,6 +71,9 @@ spec:
     - instance: sessions
       access: readwrite
   {{ end }}
+  azure:
+    application:
+      enabled: {{ .Values.contests.azureApp.enabled }}
   ingresses:
     - https://contests.{{ .Values.fasit.env.name }}.{{ .Values.fasit.tenant.name }}.cloud.nais.io
 

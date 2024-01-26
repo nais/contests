@@ -21,6 +21,8 @@ contests:
     project:
   redis:
     enabled: false
+  azureApp:
+    enabled: false
 alerts:
   enabled: true
 blackboxExporter:

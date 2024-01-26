@@ -37,3 +37,7 @@ values:
     displayName: Enable Redis checks
     config:
       type: bool
+  contests.azureApp.enabled:
+    displayName: Enable Azure app checks
+    config:
+      type: bool

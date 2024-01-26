@@ -102,6 +102,9 @@ spec:
         {{- if .Values.contests.kafka.enabled }}
         - http://contests/kafka
         {{- end }}
+        {{- if .Values.contests.azureApp.enabled }}
+        - http://contests/azure
+        {{- end }}
         {{- if .Values.contests.accessPolicy.enabled }}
         - http://contests-noaccess/ping
         - https://google.com
