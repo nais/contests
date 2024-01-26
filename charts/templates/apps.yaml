@@ -66,6 +66,11 @@ spec:
     access: readwrite
     instance: {{ .Release.Name }}
   {{ end }}
+  {{ if .Values.contests.redis.enabled }}
+  redis:
+    - instance: sessions
+      access: readwrite
+  {{ end }}
   ingresses:
     - https://contests.{{ .Values.fasit.env.name }}.{{ .Values.fasit.tenant.name }}.cloud.nais.io
 

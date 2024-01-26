@@ -5,6 +5,7 @@ import (
 	_ "crypto/tls"
 	"fmt"
 	"github.com/nais/contests/internal/opensearch"
+	"github.com/nais/contests/internal/redis"
 	"net/http"
 	"os"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/nais/contests/internal/database"
 	"github.com/nais/contests/internal/kafka"
 	osgo "github.com/opensearch-project/opensearch-go"
+	redgo "github.com/redis/go-redis/v9"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 )
@@ -35,6 +37,9 @@ var (
 	opensearchUri        string
 	opensearchUser       string
 	opensearchPassword   string
+	redisUri             string
+	redisUser            string
+	redisPassword        string
 )
 
 func init() {
@@ -53,6 +58,9 @@ func init() {
 	flag.StringVar(&opensearchUri, "opensearch-uri", os.Getenv("OPEN_SEARCH_URI"), "opensearch uri")
 	flag.StringVar(&opensearchUser, "opensearch-username", os.Getenv("OPEN_SEARCH_USERNAME"), "opensearch username")
 	flag.StringVar(&opensearchPassword, "opensearch-password", os.Getenv("OPEN_SEARCH_PASSWORD"), "opensearch password")
+	flag.StringVar(&redisUri, "redis-uri", os.Getenv("REDIS_URI_SESSIONS"), "redis uri")
+	flag.StringVar(&redisUser, "redis-username", os.Getenv("REDIS_USERNAME_SESSIONS"), "redis username")
+	flag.StringVar(&redisPassword, "redis-password", os.Getenv("REDIS_PASSWORD_SESSIONS"), "redis password")
 	flag.Parse()
 }
 
@@ -110,6 +118,19 @@ func main() {
 		}
 	} else {
 		log.Info("No opensearch configuration detected, skipping handler")
+	}
+
+	if redisUri != "" && redisUser != "" && redisPassword != "" {
+		client := redgo.NewClient(&redgo.Options{
+			Addr:     redisUri,
+			Username: redisUser,
+			Password: redisPassword, // no password set
+			DB:       0,             // use default DB
+		})
+		log.Info("Detected redis configuration, setting up handler")
+		http.HandleFunc("/redis", redis.Handler(ctx, client))
+	} else {
+		log.Info("No redis configuration detected, skipping handler")
 	}
 
 	http.HandleFunc("/ping", func(r http.ResponseWriter, _ *http.Request) {

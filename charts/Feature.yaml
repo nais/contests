@@ -33,3 +33,7 @@ values:
     displayName: Enable OpenSearch checks
     config:
       type: bool
+  contests.redis.enabled:
+    displayName: Enable Redis checks
+    config:
+      type: bool

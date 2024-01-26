@@ -19,6 +19,8 @@ contests:
   opensearch:
     enabled: false
     project:
+  redis:
+    enabled: false
 alerts:
   enabled: true
 blackboxExporter:
