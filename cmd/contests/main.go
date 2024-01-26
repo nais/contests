@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	_ "crypto/tls"
 	"fmt"
 	"github.com/nais/contests/internal/opensearch"
@@ -87,7 +86,7 @@ func main() {
 	if bigQueryDatasetName != "" && bigQueryProjectID != "" {
 		bqClient, err := bq.NewClient(ctx, bigQueryProjectID)
 		if err != nil {
-			log.Errorf("Detected BigQuery contiguration, but failed to set up client: %v", err)
+			log.Errorf("Detected BigQuery configuration, but failed to set up client: %v", err)
 		} else {
 			log.Infof("Detected BigQuery configuration, setting up handler for %v in project %v", bigQueryDatasetName, bigQueryProjectID)
 			dataset := bqClient.Dataset(bigQueryDatasetName)
@@ -99,15 +98,12 @@ func main() {
 
 	if opensearchUri != "" && opensearchUser != "" && opensearchPassword != "" {
 		client, err := osgo.NewClient(osgo.Config{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			},
 			Addresses: []string{opensearchUri},
 			Username:  opensearchUser,
 			Password:  opensearchPassword,
 		})
 		if err != nil {
-			log.Errorf("Detected opensearch contiguration, but failed to set up client: %v", err)
+			log.Errorf("Detected opensearch configuration, but failed to set up client: %v", err)
 		} else {
 			log.Info("Detected opensearch configuration, setting up handler")
 			http.HandleFunc("/opensearch", opensearch.Handler(ctx, client))
