@@ -45,6 +45,18 @@ func Handler(ctx context.Context, client *opensearch.Client) func(http.ResponseW
 		}
 		log.Info("Successfully read document from opensearch")
 
+		// Deleting same document
+		deleteRequest := opensearchapi.DeleteRequest{
+			Index:      indexName,
+			DocumentID: epoch,
+		}
+
+		_, err = deleteRequest.Do(ctx, client)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("delete document: %v", err), http.StatusInternalServerError)
+			return
+		}
+
 		w.WriteHeader(http.StatusOK)
 	}
 }
