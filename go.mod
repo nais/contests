@@ -14,7 +14,7 @@ require (
 require (
 	github.com/Shopify/sarama v1.38.1
 	github.com/opensearch-project/opensearch-go v1.1.0
-	github.com/redis/go-redis/v9 v9.4.0
+	github.com/redis/go-redis/v9 v9.5.1
 )
 
 require (
