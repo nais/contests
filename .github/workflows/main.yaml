@@ -24,7 +24,7 @@ jobs:
           google_service_account: gh-${{ env.NAME }}
           workload_identity_provider: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
           push: true
-      - uses: azure/setup-helm@v3
+      - uses: azure/setup-helm@v4
         name: "Setup Helm"
         with:
           version: "3.12.0"
@@ -47,5 +47,3 @@ jobs:
         with:
           chart: ${{ env.IMAGE_REPOSITORY }}/${{ env.NAME }}
           version: ${{ needs.build_push.outputs.version }}
-          feature_name: ${{ env.NAME }}
-
