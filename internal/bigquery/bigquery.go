@@ -11,8 +11,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const payload = "data"
-
 type TestTableRow struct {
 	InsertTime time.Time
 }

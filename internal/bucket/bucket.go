@@ -28,7 +28,7 @@ func Handler(bucketName string) func(http.ResponseWriter, *http.Request) {
 		obj := bkt.Object(payload)
 
 		writer := obj.NewWriter(ctx)
-		if _, err := fmt.Fprintf(writer, payload); err != nil {
+		if _, err := fmt.Fprint(writer, payload); err != nil {
 			log.Errorf("Writing data: %s", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return

@@ -4,10 +4,11 @@ import (
 	"context"
 	_ "crypto/tls"
 	"fmt"
-	"github.com/nais/contests/internal/opensearch"
-	"github.com/nais/contests/internal/redis"
 	"net/http"
 	"os"
+
+	"github.com/nais/contests/internal/opensearch"
+	"github.com/nais/contests/internal/redis"
 
 	bq "cloud.google.com/go/bigquery"
 	_ "github.com/lib/pq"

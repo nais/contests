@@ -3,11 +3,12 @@ package opensearch
 import (
 	"context"
 	"fmt"
-	"github.com/opensearch-project/opensearch-go"
-	"github.com/opensearch-project/opensearch-go/opensearchapi"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/opensearch-project/opensearch-go"
+	"github.com/opensearch-project/opensearch-go/opensearchapi"
 
 	log "github.com/sirupsen/logrus"
 )

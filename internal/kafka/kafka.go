@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -47,9 +47,7 @@ func New(brokersString, caPath, certPath, keyPath, topic string) (*Kafka, error)
 	config.Admin.Timeout = 5 * time.Second
 
 	var brokers []string
-	for _, b := range strings.Split(brokersString, ",") {
-		brokers = append(brokers, b)
-	}
+	brokers = append(brokers, strings.Split(brokersString, ",")...)
 
 	return &Kafka{
 		config:  config,

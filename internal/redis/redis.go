@@ -3,10 +3,11 @@ package redis
 import (
 	"context"
 	"fmt"
-	"github.com/redis/go-redis/v9"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"time"
+
+	"github.com/redis/go-redis/v9"
+	log "github.com/sirupsen/logrus"
 )
 
 func Handler(ctx context.Context, client *redis.Client) func(http.ResponseWriter, *http.Request) {
