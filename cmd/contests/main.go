@@ -30,9 +30,7 @@ var (
 	kafkaCertificatePath string
 	kafkaPrivateKeyPath  string
 	kafkaTopic           string
-	dbUser               string
-	dbPassword           string
-	dbHost               string
+	dbUrl                string
 	bigQueryDatasetName  string
 	bigQueryProjectID    string
 	opensearchUri        string
@@ -52,9 +50,7 @@ func init() {
 	flag.StringVar(&kafkaCertificatePath, "kafka-certificate-path", os.Getenv("KAFKA_CERTIFICATE_PATH"), "kafka certificate path")
 	flag.StringVar(&kafkaPrivateKeyPath, "kafka-private-key-path", os.Getenv("KAFKA_PRIVATE_KEY_PATH"), "kafka private key path")
 	flag.StringVar(&kafkaTopic, "contests", os.Getenv("KAFKA_TOPIC"), "kafka topic")
-	flag.StringVar(&dbUser, "db-username", os.Getenv("NAIS_DATABASE_CONTESTS_CONTESTS_USERNAME"), "database username")
-	flag.StringVar(&dbPassword, "db-password", os.Getenv("NAIS_DATABASE_CONTESTS_CONTESTS_PASSWORD"), "database password")
-	flag.StringVar(&dbHost, "db-host", os.Getenv("NAIS_DATABASE_CONTESTS_CONTESTS_HOST"), "database host")
+	flag.StringVar(&dbUrl, "db-url", os.Getenv("NAIS_DATABASE_CONTESTS_CONTESTS_URL"), "database url")
 	flag.StringVar(&bigQueryDatasetName, "bigquery-dataset-name", os.Getenv("BIGQUERY_DATASET_NAME"), "name of bigquery dataset")
 	flag.StringVar(&bigQueryProjectID, "bigquery-project-id", os.Getenv("GCP_TEAM_PROJECT_ID"), "project id of bigquery dataset")
 	flag.StringVar(&opensearchUri, "opensearch-uri", os.Getenv("OPEN_SEARCH_URI"), "opensearch uri")
@@ -87,9 +83,9 @@ func main() {
 		log.Infof("No kafka configuration detected, skipping handler")
 	}
 
-	if dbUser != "" && dbPassword != "" && dbHost != "" {
+	if dbUrl != "" {
 		log.Info("Detected database configuration, setting up handler")
-		http.HandleFunc("/database", database.Handler(dbUser, dbPassword, dbHost))
+		http.HandleFunc("/database", database.Handler(dbUrl))
 	} else {
 		log.Infof("No database configuration detected, skipping handler")
 	}
