@@ -50,6 +50,7 @@ spec:
       - type: POSTGRES_14
         databases:
           - name: contests
+        tier: db-f1-micro
     {{- end }}
     {{- if .Values.contests.bigquery.enabled }}
     bigQueryDatasets:
