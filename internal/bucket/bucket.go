@@ -29,27 +29,28 @@ func Handler(bucketName string) func(http.ResponseWriter, *http.Request) {
 
 		writer := obj.NewWriter(ctx)
 		if _, err := fmt.Fprint(writer, payload); err != nil {
-			log.Errorf("Writing data: %s", err)
+			log.Errorf("Writing data to bucket: %s", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		log.Info("Successfully wrote data to bucket")
 		if err := writer.Close(); err != nil {
-			log.Errorf("Closing writer: %s", err)
+			log.Errorf("Closing bucket writer: %s", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
+		log.Info("Successfully wrote data to bucket")
+
 		reader, err := obj.NewReader(ctx)
 		if err != nil {
-			log.Errorf("Creating reader: %s", err)
+			log.Errorf("Creating bucket reader: %s", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		defer reader.Close()
 		b, err := io.ReadAll(reader)
 		if err != nil {
-			log.Errorf("Reading data: %s", err)
+			log.Errorf("Reading data from bucket: %s", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
