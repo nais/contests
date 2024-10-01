@@ -110,7 +110,7 @@ func (k *Kafka) Handler() func(http.ResponseWriter, *http.Request) {
 
 		c, err := consumer.ConsumePartition(k.topic, p, o)
 		if err != nil {
-			log.Errorf("could not consume partition (%s) from topic (%s): %s", p, k.topic, err)
+			log.Errorf("could not consume partition (%d) from topic (%s): %s", p, k.topic, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
