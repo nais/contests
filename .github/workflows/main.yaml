@@ -16,7 +16,7 @@ jobs:
     name: Build and push
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4.1.2
+      - uses: actions/checkout@v4
       - uses: nais/platform-build-push-sign@main
         id: build-push-sign
         with:
@@ -27,7 +27,7 @@ jobs:
       - uses: azure/setup-helm@v4
         name: "Setup Helm"
         with:
-          version: "3.12.0"
+          version: "3.15.4"
       - name: Build Chart
         run: |-
           sed -i "s/^version: .*/version: ${{ steps.build-push-sign.outputs.version }}/g" charts/Chart.yaml
