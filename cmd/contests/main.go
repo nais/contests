@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/nais/contests/internal/opensearch"
-	"github.com/nais/contests/internal/redis"
+	"github.com/nais/contests/internal/valkey"
 
 	bq "cloud.google.com/go/bigquery"
 	_ "github.com/lib/pq"
@@ -36,9 +36,9 @@ var (
 	opensearchUri        string
 	opensearchUser       string
 	opensearchPassword   string
-	redisUri             string
-	redisUser            string
-	redisPassword        string
+	valkeyUri            string
+	valkeyUser           string
+	valkeyPassword       string
 	azureAppClientID     string
 )
 
@@ -56,9 +56,10 @@ func init() {
 	flag.StringVar(&opensearchUri, "opensearch-uri", os.Getenv("OPEN_SEARCH_URI"), "opensearch uri")
 	flag.StringVar(&opensearchUser, "opensearch-username", os.Getenv("OPEN_SEARCH_USERNAME"), "opensearch username")
 	flag.StringVar(&opensearchPassword, "opensearch-password", os.Getenv("OPEN_SEARCH_PASSWORD"), "opensearch password")
-	flag.StringVar(&redisUri, "redis-uri", os.Getenv("REDIS_URI_SESSIONS"), "redis uri")
-	flag.StringVar(&redisUser, "redis-username", os.Getenv("REDIS_USERNAME_SESSIONS"), "redis username")
-	flag.StringVar(&redisPassword, "redis-password", os.Getenv("REDIS_PASSWORD_SESSIONS"), "redis password")
+	// Since we're still using the old redis client, we can't use VALKEY_URI_SESSIONS, as that uses `valkeys` as scheme, which the redis client won't accept
+	flag.StringVar(&valkeyUri, "valkey-uri", os.Getenv("REDIS_URI_SESSIONS"), "valkey uri")
+	flag.StringVar(&valkeyUser, "valkey-username", os.Getenv("VALKEY_USERNAME_SESSIONS"), "valkey username")
+	flag.StringVar(&valkeyPassword, "valkey-password", os.Getenv("VALKEY_PASSWORD_SESSIONS"), "valkey password")
 	flag.StringVar(&azureAppClientID, "azure-app-client-id", os.Getenv("AZURE_APP_CLIENT_ID"), "azure app client id")
 	flag.Parse()
 }
@@ -119,19 +120,19 @@ func main() {
 		log.Info("No opensearch configuration detected, skipping handler")
 	}
 
-	if redisUri != "" && redisUser != "" && redisPassword != "" {
-		redisOpts, err := redgo.ParseURL(redisUri)
+	if valkeyUri != "" && valkeyUser != "" && valkeyPassword != "" {
+		valkeyOpts, err := redgo.ParseURL(valkeyUri)
 		if err != nil {
-			log.Errorf("Detected redis configuration, but failed to parse URI: %v", err)
+			log.Errorf("Detected valkey configuration, but failed to parse URI: %v", err)
 		}
-		redisOpts.Username = redisUser
-		redisOpts.Password = redisPassword
+		valkeyOpts.Username = valkeyUser
+		valkeyOpts.Password = valkeyPassword
 
-		client := redgo.NewClient(redisOpts)
-		log.Info("Detected redis configuration, setting up handler")
-		http.HandleFunc("/redis", redis.Handler(ctx, client))
+		client := redgo.NewClient(valkeyOpts)
+		log.Info("Detected valkey configuration, setting up handler")
+		http.HandleFunc("/valkey", valkey.Handler(ctx, client))
 	} else {
-		log.Info("No redis configuration detected, skipping handler")
+		log.Info("No valkey configuration detected, skipping handler")
 	}
 
 	if azureAppClientID != "" {

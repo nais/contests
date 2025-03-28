@@ -1,4 +1,4 @@
-package redis
+package valkey
 
 import (
 	"context"
@@ -18,7 +18,7 @@ func Handler(ctx context.Context, client *redis.Client) func(http.ResponseWriter
 			http.Error(w, fmt.Sprintf("create value: %v", err), http.StatusInternalServerError)
 			return
 		}
-		log.Info("Successfully created value in redis")
+		log.Info("Successfully created value in valkey")
 
 		val, err := client.Get(ctx, "foo").Result()
 		if err != nil {
@@ -29,6 +29,6 @@ func Handler(ctx context.Context, client *redis.Client) func(http.ResponseWriter
 			http.Error(w, fmt.Sprintf("unexpected value: %v", val), http.StatusInternalServerError)
 			return
 		}
-		log.Info("Successfully read value from redis")
+		log.Info("Successfully read value from valkey")
 	}
 }

@@ -14,7 +14,7 @@ require (
 require (
 	github.com/IBM/sarama v1.43.3
 	github.com/opensearch-project/opensearch-go v1.1.0
-	github.com/redis/go-redis/v9 v9.7.0
+	github.com/redis/go-redis/v9 v9.7.3
 )
 
 require (

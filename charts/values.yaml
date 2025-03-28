@@ -19,7 +19,7 @@ contests:
   opensearch:
     enabled: false
     project:
-  redis:
+  valkey:
     enabled: false
   azureApp:
     enabled: false

@@ -96,8 +96,8 @@ spec:
         {{- if .Values.contests.opensearch.enabled }}
         - http://contests/opensearch
         {{- end }}
-        {{- if .Values.contests.redis.enabled }}
-        - http://contests/redis
+        {{- if .Values.contests.valkey.enabled }}
+        - http://contests/valkey
         {{- end }}
         {{- if .Values.contests.kafka.enabled }}
         - http://contests/kafka

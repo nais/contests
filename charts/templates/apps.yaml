@@ -67,8 +67,8 @@ spec:
     access: readwrite
     instance: {{ .Release.Name }}
   {{ end }}
-  {{ if .Values.contests.redis.enabled }}
-  redis:
+  {{ if .Values.contests.valkey.enabled }}
+  valkey:
     - instance: sessions
       access: readwrite
   {{ end }}
