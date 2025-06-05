@@ -95,7 +95,7 @@ func main() {
 
 	if postgresUrl != "" {
 		log.Info("Detected database configuration for postgres operator, setting up handler")
-		http.HandleFunc("/database", database.Handler(postgresUrl))
+		http.HandleFunc("/postgres", database.Handler(postgresUrl))
 	} else {
 		log.Infof("No database configuration detected, skipping handler")
 	}
