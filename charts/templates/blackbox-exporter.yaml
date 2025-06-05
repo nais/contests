@@ -105,6 +105,9 @@ spec:
         {{- if .Values.contests.azureApp.enabled }}
         - http://contests/azure
         {{- end }}
+        {{- if .Values.contests.postgres.enabled }}
+        - http://contests/postgres
+        {{- end }}
         {{- if .Values.contests.accessPolicy.enabled }}
         - http://contests-noaccess/ping
         - https://google.com
