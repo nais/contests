@@ -88,14 +88,14 @@ func main() {
 
 	if dbUrl != "" {
 		log.Info("Detected database configuration for sql instance, setting up handler")
-		http.HandleFunc("/database", database.Handler(dbUrl))
+		http.HandleFunc("/database", database.Handler(dbUrl, log.WithField("provider", "sqlinstance")))
 	} else {
 		log.Infof("No database configuration detected, skipping handler")
 	}
 
 	if postgresUrl != "" {
 		log.Info("Detected database configuration for postgres operator, setting up handler")
-		http.HandleFunc("/postgres", database.Handler(postgresUrl))
+		http.HandleFunc("/postgres", database.Handler(postgresUrl, log.WithField("provider", "postgres-operator")))
 	} else {
 		log.Infof("No database configuration detected, skipping handler")
 	}
