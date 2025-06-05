@@ -40,6 +40,7 @@ var (
 	valkeyUser           string
 	valkeyPassword       string
 	azureAppClientID     string
+	postgresUrl          string
 )
 
 func init() {
@@ -61,6 +62,7 @@ func init() {
 	flag.StringVar(&valkeyUser, "valkey-username", os.Getenv("VALKEY_USERNAME_SESSIONS"), "valkey username")
 	flag.StringVar(&valkeyPassword, "valkey-password", os.Getenv("VALKEY_PASSWORD_SESSIONS"), "valkey password")
 	flag.StringVar(&azureAppClientID, "azure-app-client-id", os.Getenv("AZURE_APP_CLIENT_ID"), "azure app client id")
+	flag.StringVar(&postgresUrl, "postgres-url", os.Getenv("PGURL"), "postgres url")
 	flag.Parse()
 }
 
@@ -85,8 +87,15 @@ func main() {
 	}
 
 	if dbUrl != "" {
-		log.Info("Detected database configuration, setting up handler")
+		log.Info("Detected database configuration for sql instance, setting up handler")
 		http.HandleFunc("/database", database.Handler(dbUrl))
+	} else {
+		log.Infof("No database configuration detected, skipping handler")
+	}
+
+	if postgresUrl != "" {
+		log.Info("Detected database configuration for postgres operator, setting up handler")
+		http.HandleFunc("/database", database.Handler(postgresUrl))
 	} else {
 		log.Infof("No database configuration detected, skipping handler")
 	}

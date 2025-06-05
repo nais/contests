@@ -23,6 +23,8 @@ contests:
     enabled: false
   azureApp:
     enabled: false
+  postgres:
+    enabled: false
 alerts:
   enabled: true
 blackboxExporter:

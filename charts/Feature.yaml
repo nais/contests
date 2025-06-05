@@ -41,3 +41,7 @@ values:
     displayName: Enable Azure app checks
     config:
       type: bool
+  contests.postgres.enabled:
+    displayName: Enable Postgres app checks
+    config:
+      type: bool

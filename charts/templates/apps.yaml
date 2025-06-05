@@ -76,6 +76,16 @@ spec:
     application:
       enabled: {{ .Values.contests.azureApp.enabled }}
       tenant: nav.no
+  {{ if .Values.contests.postgres.enabled }}
+  postgres:
+    cluster:
+      allowDeletion: true
+      majorVersion: "17"
+      resources:
+        cpu: 100m
+        diskSize: 1Gi
+        memory: 2G
+  {{ end }}
   ingresses:
     - https://contests.{{ .Values.fasit.env.name }}.{{ .Values.fasit.tenant.name }}.cloud.nais.io
 
