@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/nais/contests/internal/opensearch"
 	"github.com/nais/contests/internal/valkey"
@@ -154,6 +155,23 @@ func main() {
 
 	http.HandleFunc("/ping", func(r http.ResponseWriter, _ *http.Request) {
 		fmt.Fprintf(r, "pong\n")
+	})
+
+	http.HandleFunc("/statuscode/{code}", func(r http.ResponseWriter, req *http.Request) {
+		value := req.PathValue("code")
+		code, err := strconv.Atoi(value)
+		if err != nil {
+			log.Errorf("Invalid status code %v: %v", value, err)
+			http.Error(r, "Code must be number in range [400,600)", http.StatusBadRequest)
+			return
+		}
+		if code < 400 || code > 599 {
+			log.Errorf("Invalid status code %d: in range [400,600)", code)
+			http.Error(r, "Code must be number in range [400,600)", http.StatusBadRequest)
+			return
+		}
+		message := fmt.Sprintf("This endpoint intentionally returns status code %d %s.\n", code, http.StatusText(code))
+		http.Error(r, message, code)
 	})
 
 	log.Infof("running @ %s", bindAddr)
