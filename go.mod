@@ -9,7 +9,7 @@ require (
 	cloud.google.com/go/storage v1.55.0
 	github.com/lib/pq v1.10.9
 	github.com/sirupsen/logrus v1.9.3
-	github.com/spf13/pflag v1.0.6
+	github.com/spf13/pflag v1.0.7
 	google.golang.org/api v0.239.0 // indirect
 )
 
