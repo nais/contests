@@ -64,6 +64,12 @@ spec:
       podSelector:
         matchLabels:
           app.kubernetes.io/name: prometheus
+    - namespaceSelector:
+        matchLabels:
+          name: nais-system
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: alloy
   podSelector:
     matchLabels:
       app: {{ .Release.Name }}-blackbox-exporter
