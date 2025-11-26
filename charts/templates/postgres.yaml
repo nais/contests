@@ -1,0 +1,18 @@
+{{ if .Values.contests.postgres.enabled }}
+---
+apiVersion: data.nais.io/v1
+kind: Postgres
+metadata:
+  name: contests
+  labels:
+    {{- include "contests.labels" . | nindent 4 }}
+    team: nais
+spec:
+  cluster:
+    allowDeletion: true
+    majorVersion: "17"
+    resources:
+      cpu: 100m
+      diskSize: 5Gi
+      memory: 2G
+{{ end }}
