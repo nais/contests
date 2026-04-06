@@ -7,7 +7,7 @@ toolchain go1.26.1
 require (
 	cloud.google.com/go/bigquery v1.74.0
 	cloud.google.com/go/storage v1.61.3
-	github.com/lib/pq v1.12.0
+	github.com/lib/pq v1.12.3
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/pflag v1.0.10
 	google.golang.org/api v0.273.0 // indirect
