@@ -5,7 +5,7 @@ go 1.26.0
 toolchain go1.26.1
 
 require (
-	cloud.google.com/go/bigquery v1.74.0
+	cloud.google.com/go/bigquery v1.75.0
 	cloud.google.com/go/storage v1.61.3
 	github.com/lib/pq v1.12.0
 	github.com/sirupsen/logrus v1.9.4
