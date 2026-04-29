@@ -31,7 +31,11 @@ func Handler(ctx context.Context, client *opensearch.Client) func(http.ResponseW
 		}
 		log.Info("Successfully created document in opensearch")
 
-		defer res.Body.Close()
+		defer func() {
+			if err := res.Body.Close(); err != nil {
+				log.Errorf("Closing opensearch response body: %s", err)
+			}
+		}()
 
 		// Retrieving same document
 		getRequest := opensearchapi.GetRequest{

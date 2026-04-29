@@ -47,7 +47,11 @@ func Handler(bucketName string) func(http.ResponseWriter, *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		defer reader.Close()
+		defer func() {
+			if err := reader.Close(); err != nil {
+				log.Errorf("Closing bucket reader: %s", err)
+			}
+		}()
 		b, err := io.ReadAll(reader)
 		if err != nil {
 			log.Errorf("Reading data from bucket: %s", err)

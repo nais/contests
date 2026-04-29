@@ -20,7 +20,11 @@ func Handler(url string, logger log.FieldLogger) func(http.ResponseWriter, *http
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		defer db.Close()
+		defer func() {
+			if err := db.Close(); err != nil {
+				logger.Errorf("Closing database: %s", err)
+			}
+		}()
 		logger.Info("Pinging database")
 		err = db.PingContext(ctx)
 		if err != nil {

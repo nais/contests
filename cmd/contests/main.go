@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/nais/contests/internal/opensearch"
 	"github.com/nais/contests/internal/valkey"
@@ -148,13 +149,17 @@ func main() {
 	if azureAppClientID != "" {
 		log.Info("Detected Azure app configuration, setting up handler")
 		http.HandleFunc("/azure", func(w http.ResponseWriter, _ *http.Request) {
-			fmt.Fprintf(w, "Azure app client id: %s", azureAppClientID)
+			if _, err := fmt.Fprintf(w, "Azure app client id: %s", azureAppClientID); err != nil {
+				log.Errorf("Writing azure response: %s", err)
+			}
 			log.Info("Successfully returned Azure app client id")
 		})
 	}
 
-	http.HandleFunc("/ping", func(r http.ResponseWriter, _ *http.Request) {
-		fmt.Fprintf(r, "pong\n")
+	http.HandleFunc("/ping", func(w http.ResponseWriter, _ *http.Request) {
+		if _, err := fmt.Fprintf(w, "pong\n"); err != nil {
+			log.Errorf("Writing ping response: %s", err)
+		}
 	})
 
 	http.HandleFunc("/statuscode/{code}", func(r http.ResponseWriter, req *http.Request) {
@@ -176,7 +181,11 @@ func main() {
 
 	log.Infof("running @ %s", bindAddr)
 
-	if err := http.ListenAndServe(bindAddr, nil); err != nil {
+	server := &http.Server{
+		Addr:              bindAddr,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+	if err := server.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -26,7 +26,7 @@ func New(brokersString, caPath, certPath, keyPath, topic string) (*Kafka, error)
 		return nil, err
 	}
 
-	caCert, err := os.ReadFile(caPath)
+	caCert, err := os.ReadFile(caPath) //nolint:gosec // caPath is provided via CLI flag/env, not user input
 	if err != nil {
 		log.Println(err)
 		return nil, err
