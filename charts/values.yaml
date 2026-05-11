@@ -25,6 +25,8 @@ contests:
     enabled: false
   postgres:
     enabled: false
+  haproxy:
+    enabled: false
 alerts:
   enabled: true
 blackboxExporter:
