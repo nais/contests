@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    prometheus.io/path: /ping
+    prometheus.io/scrape: "true"
+  labels:
+    app: contests
+    app.kubernetes.io/instance: contests
+    app.kubernetes.io/name: contests
+    team: nais-system
+  name: contests-ingress-haproxy
+  namespace: nais-system
+spec:
+  ingressClassName: internal-haproxy
+  rules:
+    - host: contests.dev.atil.cloud.nais.io
+      http:
+        paths:
+          - backend:
+              service:
+                name: contests
+                port:
+                  number: 80
+            path: /
+            pathType: Prefix
