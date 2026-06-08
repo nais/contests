@@ -4,7 +4,7 @@ go 1.26.2
 
 require (
 	cloud.google.com/go/bigquery v1.76.0
-	cloud.google.com/go/storage v1.62.1
+	cloud.google.com/go/storage v1.62.3
 	github.com/lib/pq v1.12.3
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/pflag v1.0.10
