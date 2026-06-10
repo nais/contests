@@ -45,7 +45,3 @@ values:
     displayName: Enable Postgres app checks
     config:
       type: bool
-  contests.haproxy.enabled:
-    displayName: Enable HAProxy Ingress
-    config:
-      type: bool
