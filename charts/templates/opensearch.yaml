@@ -8,4 +8,6 @@ metadata:
 spec:
   plan: hobbyist
   project: {{ .Values.contests.opensearch.project }}
+  userConfig:
+    opensearch_version: "2.19"
 {{- end }}
