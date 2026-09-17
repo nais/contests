@@ -5,5 +5,5 @@ metadata:
   name: {{ .Release.Name }}
 spec:
   tier: SingleNode
-  memory: 1GB
+  memory: 2GB
 {{- end }}
