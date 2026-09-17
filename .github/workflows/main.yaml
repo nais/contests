@@ -10,6 +10,7 @@ permissions:
   id-token: write
 
 jobs:
+  build:
     uses: nais/actions/.github/workflows/mise-build-deploy-fasit.yaml@f5878ae809bc0adec962432f8440e618f35a986a
     with:
       builds-docker: true
