@@ -59,10 +59,10 @@ func init() {
 	flag.StringVar(&opensearchUri, "opensearch-uri", os.Getenv("OPEN_SEARCH_URI"), "opensearch uri")
 	flag.StringVar(&opensearchUser, "opensearch-username", os.Getenv("OPEN_SEARCH_USERNAME"), "opensearch username")
 	flag.StringVar(&opensearchPassword, "opensearch-password", os.Getenv("OPEN_SEARCH_PASSWORD"), "opensearch password")
-	// Since we're still using the old redis client, we can't use VALKEY_URI_SESSIONS, as that uses `valkeys` as scheme, which the redis client won't accept
-	flag.StringVar(&valkeyUri, "valkey-uri", os.Getenv("REDIS_URI_SESSIONS"), "valkey uri")
-	flag.StringVar(&valkeyUser, "valkey-username", os.Getenv("VALKEY_USERNAME_SESSIONS"), "valkey username")
-	flag.StringVar(&valkeyPassword, "valkey-password", os.Getenv("VALKEY_PASSWORD_SESSIONS"), "valkey password")
+	// Since we're still using the old redis client, we can't use VALKEY_URI_CONTESTS, as that uses `valkeys` as scheme, which the redis client won't accept
+	flag.StringVar(&valkeyUri, "valkey-uri", os.Getenv("REDIS_URI_CONTESTS"), "valkey uri")
+	flag.StringVar(&valkeyUser, "valkey-username", os.Getenv("VALKEY_USERNAME_CONTESTS"), "valkey username")
+	flag.StringVar(&valkeyPassword, "valkey-password", os.Getenv("VALKEY_PASSWORD_CONTESTS"), "valkey password")
 	flag.StringVar(&azureAppClientID, "azure-app-client-id", os.Getenv("AZURE_APP_CLIENT_ID"), "azure app client id")
 	flag.StringVar(&postgresUrl, "postgres-url", os.Getenv("PGURL"), "postgres url")
 	flag.Parse()

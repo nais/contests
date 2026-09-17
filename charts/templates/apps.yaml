@@ -68,7 +68,7 @@ spec:
   {{ end }}
   {{ if .Values.contests.valkey.enabled }}
   valkey:
-    - instance: sessions
+    - instance: contests
       access: readwrite
   {{ end }}
   azure:

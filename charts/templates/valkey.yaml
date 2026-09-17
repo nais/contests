@@ -1,6 +1,6 @@
-{{- if .Values.contests.opensearch.enabled }}
+{{- if .Values.contests.valkey.enabled }}
 apiVersion: nais.io/v1
-kind: OpenSearch
+kind: Valkey
 metadata:
   name: {{ .Release.Name }}
 spec:
