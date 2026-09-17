@@ -6,5 +6,6 @@ metadata:
 spec:
   tier: SingleNode
   memory: 2GB
+  storageGB: 16
   version: "3.6"
 {{- end }}
