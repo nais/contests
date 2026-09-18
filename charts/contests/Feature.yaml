@@ -13,12 +13,10 @@ values:
     displayName: Enable Kafka checks
     config:
       type: bool
+    computed
+      template: '"{{ .Env.kafka_bootstrap_broker }}"'
   contests.kafka.pool:
     displayName: Kafka pool
-    computed:
-      template: '"{{ .Env.aiven_project }}"'
-  contests.opensearch.project:
-    displayName: OpenSearch project
     computed:
       template: '"{{ .Env.aiven_project }}"'
   contests.storage.enabled:
@@ -33,15 +31,19 @@ values:
     displayName: Enable OpenSearch checks
     config:
       type: bool
+    computed:
+      template: '"{{ ne .Env.aiven_project "" }}"'
   contests.valkey.enabled:
     displayName: Enable Valkey checks
     config:
       type: bool
+    computed:
+      template: '"{{ ne .Env.aiven_project "" }}"'
   contests.azureApp.enabled:
     displayName: Enable Azure app checks
     config:
       type: bool
   contests.postgres.enabled:
-    displayName: Enable Postgres app checks
+    displayName: Enable in-cluster Postgres app checks
     config:
       type: bool
