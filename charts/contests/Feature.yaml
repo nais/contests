@@ -14,7 +14,7 @@ values:
     config:
       type: bool
     computed:
-      template: '"{{ hasKey .Env "kafka_bootstrap_broker" }}"'
+      template: '{{ hasKey .Env "kafka_bootstrap_broker" }}'
   contests.kafka.pool:
     displayName: Kafka pool
     computed:
@@ -32,13 +32,13 @@ values:
     config:
       type: bool
     computed:
-      template: '"{{ hasKey .Env "aiven_project" }}"'
+      template: '{{ hasKey .Env "aiven_project" }}'
   contests.valkey.enabled:
     displayName: Enable Valkey checks
     config:
       type: bool
     computed:
-      template: '"{{ hasKey .Env "aiven_project" }}"'
+      template: '{{ hasKey .Env "aiven_project" }}'
   contests.azureApp.enabled:
     displayName: Enable Azure app checks
     config:
