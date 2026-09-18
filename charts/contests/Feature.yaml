@@ -13,14 +13,14 @@ values:
     displayName: Enable Kafka checks
     config:
       type: bool
-    computed
+    computed:
       template: '"{{ .Env.kafka_bootstrap_broker }}"'
   contests.kafka.pool:
     displayName: Kafka pool
     computed:
       template: '"{{ .Env.aiven_project }}"'
   contests.storage.enabled:
-    displayName: Enable storage checks (GCP postgres + bucket)
+    displayName: Enable storage checks (GCP Postgres + bucket)
     config:
       type: bool
   contests.bigquery.enabled:
