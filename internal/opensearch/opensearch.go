@@ -43,11 +43,16 @@ func Handler(ctx context.Context, client *opensearch.Client) func(http.ResponseW
 			DocumentID: epoch,
 		}
 
-		_, err = getRequest.Do(ctx, client)
+		getRes, err := getRequest.Do(ctx, client)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("get document: %v", err), http.StatusInternalServerError)
 			return
 		}
+		defer func() {
+			if err := getRes.Body.Close(); err != nil {
+				log.Errorf("Closing opensearch get response body: %s", err)
+			}
+		}()
 		log.Info("Successfully read document from opensearch")
 
 		// Deleting same document
@@ -56,11 +61,16 @@ func Handler(ctx context.Context, client *opensearch.Client) func(http.ResponseW
 			DocumentID: epoch,
 		}
 
-		_, err = deleteRequest.Do(ctx, client)
+		deleteRes, err := deleteRequest.Do(ctx, client)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("delete document: %v", err), http.StatusInternalServerError)
 			return
 		}
+		defer func() {
+			if err := deleteRes.Body.Close(); err != nil {
+				log.Errorf("Closing opensearch delete response body: %s", err)
+			}
+		}()
 		log.Info("Successfully deleted document from opensearch")
 
 		w.WriteHeader(http.StatusOK)
