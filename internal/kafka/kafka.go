@@ -31,6 +31,7 @@ func New(brokersString, caPath, certPath, keyPath, topic string) (*Kafka, error)
 		log.Println(err)
 		return nil, err
 	}
+
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
 
@@ -61,18 +62,26 @@ func (k *Kafka) Handler() func(http.ResponseWriter, *http.Request) {
 		// verify all brokers are working as expected
 		for _, b := range k.brokers {
 			broker := sarama.NewBroker(b)
+
 			if err := broker.Open(k.config); err != nil {
 				log.Errorf("opening connection to broker: %s: %s", broker.Addr(), err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
+
 			connected, err := broker.Connected()
 			if err != nil || !connected {
+				if closeErr := broker.Close(); closeErr != nil {
+					log.Errorf("could not close connection to broker %s: %s", broker.Addr(), closeErr)
+				}
+
 				log.Errorf("verifying connection to broker: %s: %s", broker.Addr(), err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
+
 			log.Infof("Successfully connected to Kafka broker: %s", broker.Addr())
+
 			if err := broker.Close(); err != nil {
 				log.Errorf("could not close connection: %s", err)
 				w.WriteHeader(http.StatusInternalServerError)
@@ -81,6 +90,7 @@ func (k *Kafka) Handler() func(http.ResponseWriter, *http.Request) {
 		}
 
 		ts := fmt.Sprintf("%d", time.Now().Unix())
+
 		// test produce to topic
 		producer, err := sarama.NewSyncProducer(k.brokers, k.config)
 		if err != nil {
@@ -88,18 +98,31 @@ func (k *Kafka) Handler() func(http.ResponseWriter, *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		defer func() {
+			if err := producer.Close(); err != nil {
+				log.Errorf("could not close kafka producer: %s", err)
+			}
+		}()
+
 		msg := &sarama.ProducerMessage{
 			Topic: k.topic,
 			Key:   sarama.StringEncoder(ts),
 			Value: sarama.StringEncoder(ts),
 		}
+
 		p, o, err := producer.SendMessage(msg)
 		if err != nil {
 			log.Errorf("could not produce message to topic (%s): %s", k.topic, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		log.Infof("produced message to kafka topic: %s (partition: %d, offset: %d)", "", p, o)
+
+		log.Infof(
+			"produced message to kafka topic: %s (partition: %d, offset: %d)",
+			k.topic,
+			p,
+			o,
+		)
 
 		consumer, err := sarama.NewConsumer(k.brokers, k.config)
 		if err != nil {
@@ -107,18 +130,38 @@ func (k *Kafka) Handler() func(http.ResponseWriter, *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		defer func() {
+			if err := consumer.Close(); err != nil {
+				log.Errorf("could not close kafka consumer: %s", err)
+			}
+		}()
 
 		c, err := consumer.ConsumePartition(k.topic, p, o)
 		if err != nil {
-			log.Errorf("could not consume partition (%d) from topic (%s): %s", p, k.topic, err)
+			log.Errorf(
+				"could not consume partition (%d) from topic (%s): %s",
+				p,
+				k.topic,
+				err,
+			)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		defer func() {
+			if err := c.Close(); err != nil {
+				log.Errorf("could not close partition consumer: %s", err)
+			}
+		}()
+
 		consumedMessage := <-c.Messages()
 
 		consumedValue := string(consumedMessage.Value)
 		if consumedValue != ts {
-			log.Infof("consumed (%s) is not equal to what we produced (%s)", consumedValue, ts)
+			log.Infof(
+				"consumed (%s) is not equal to what we produced (%s)",
+				consumedValue,
+				ts,
+			)
 			w.WriteHeader(http.StatusOK)
 			return
 		}
