@@ -60,9 +60,9 @@ spec:
             severity: critical
             ping: nais-vakt
           annotations:
-            consequence: Access policies may not work correctly in cluster.
-            action: Check that access policies are configured correctly for contests and blackbox exporter.
-            summary: Blackbox exporter is unable to access 'contests' in cluster. This should be open according to configuration
+            consequence: Access policies may not work correctly or contests service down and other connectivity alerts not working
+            action: Check that contests pods are running and that access policies are configured correctly for contests and blackbox exporter.
+            summary: Blackbox exporter is unable to access 'contests' in cluster. Contests may be down or network policies not working according to configuration
         - alert: Access policy denied service allowed
           expr: probe_success{instance=~"http://contests-noaccess/ping"} == 1
           for: 5m
