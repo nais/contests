@@ -19,6 +19,7 @@ import (
 	"github.com/nais/contests/internal/database"
 	"github.com/nais/contests/internal/kafka"
 	osgo "github.com/opensearch-project/opensearch-go"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	redgo "github.com/redis/go-redis/v9"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
@@ -70,6 +71,7 @@ func init() {
 
 func main() {
 	ctx := context.Background()
+	http.Handle("/metrics", metricsHandler())
 	if bucketName != "" {
 		log.Infof("Detected bucket configuration, setting up handler for %s", bucketName)
 		http.HandleFunc("/bucket", bucket.Handler(bucketName))
@@ -82,8 +84,9 @@ func main() {
 		k, err := kafka.New(kafkaBrokers, kafkaCAPath, kafkaCertificatePath, kafkaPrivateKeyPath, kafkaTopic)
 		if err != nil {
 			log.Errorf("Initializing Kafka: %s", err)
+		} else {
+			http.HandleFunc("/kafka", k.Handler())
 		}
-		http.HandleFunc("/kafka", k.Handler())
 	} else {
 		log.Infof("No kafka configuration detected, skipping handler")
 	}
@@ -109,7 +112,7 @@ func main() {
 		} else {
 			log.Infof("Detected BigQuery configuration, setting up handler for %v in project %v", bigQueryDatasetName, bigQueryProjectID)
 			dataset := bqClient.Dataset(bigQueryDatasetName)
-			http.HandleFunc("/bigquery", bigquery.Handler(ctx, dataset))
+			http.HandleFunc("/bigquery", bigquery.Handler(dataset))
 		}
 	} else {
 		log.Info("No BigQuery configuration detected, skipping handler")
@@ -125,7 +128,7 @@ func main() {
 			log.Errorf("Detected opensearch configuration, but failed to set up client: %v", err)
 		} else {
 			log.Info("Detected opensearch configuration, setting up handler")
-			http.HandleFunc("/opensearch", opensearch.Handler(ctx, client))
+			http.HandleFunc("/opensearch", opensearch.Handler(client))
 		}
 	} else {
 		log.Info("No opensearch configuration detected, skipping handler")
@@ -135,13 +138,16 @@ func main() {
 		valkeyOpts, err := redgo.ParseURL(valkeyUri)
 		if err != nil {
 			log.Errorf("Detected valkey configuration, but failed to parse URI: %v", err)
+		} else {
+			valkeyOpts.Username = valkeyUser
+			valkeyOpts.Password = valkeyPassword
 		}
-		valkeyOpts.Username = valkeyUser
-		valkeyOpts.Password = valkeyPassword
 
-		client := redgo.NewClient(valkeyOpts)
-		log.Info("Detected valkey configuration, setting up handler")
-		http.HandleFunc("/valkey", valkey.Handler(ctx, client))
+		if err == nil {
+			client := redgo.NewClient(valkeyOpts)
+			log.Info("Detected valkey configuration, setting up handler")
+			http.HandleFunc("/valkey", valkey.Handler(client))
+		}
 	} else {
 		log.Info("No valkey configuration detected, skipping handler")
 	}
@@ -188,4 +194,8 @@ func main() {
 	if err := server.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func metricsHandler() http.Handler {
+	return promhttp.Handler()
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"cloud.google.com/go/bigquery"
@@ -16,8 +15,11 @@ type TestTableRow struct {
 }
 
 // Creates a temporary table with name current timestamp, that lasts for 1 minute. After creation it inserts a row with current timestamp as value.
-func Handler(ctx context.Context, dataset *bigquery.Dataset) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, _ *http.Request) {
+func Handler(dataset *bigquery.Dataset) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 4*time.Second)
+		defer cancel()
+
 		now := time.Now()
 
 		row := TestTableRow{InsertTime: now}
@@ -27,8 +29,7 @@ func Handler(ctx context.Context, dataset *bigquery.Dataset) func(http.ResponseW
 			return
 		}
 
-		timestamp := strconv.FormatInt(now.Unix(), 10)
-		table := dataset.Table(timestamp)
+		table := dataset.Table(fmt.Sprintf("contests_%d", now.UnixNano()))
 		md := &bigquery.TableMetadata{
 			ExpirationTime: time.Now().Add(time.Minute),
 			Schema:         schema,

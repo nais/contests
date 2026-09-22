@@ -15,7 +15,7 @@ const payload = "data"
 
 func Handler(bucketName string) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(r.Context(), 4*time.Second)
 		defer cancel()
 
 		client, err := storage.NewClient(ctx)
@@ -30,7 +30,13 @@ func Handler(bucketName string) func(http.ResponseWriter, *http.Request) {
 			}
 		}()
 		bkt := client.Bucket(bucketName)
-		obj := bkt.Object(payload)
+		objectName := fmt.Sprintf("contests-%d", time.Now().UnixNano())
+		obj := bkt.Object(objectName)
+		defer func() {
+			if err := obj.Delete(ctx); err != nil {
+				log.Errorf("Deleting bucket object: %s", err)
+			}
+		}()
 
 		writer := obj.NewWriter(ctx)
 		if _, err := fmt.Fprint(writer, payload); err != nil {

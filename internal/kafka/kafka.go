@@ -1,6 +1,7 @@
 package kafka
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -44,8 +45,15 @@ func New(brokersString, caPath, certPath, keyPath, topic string) (*Kafka, error)
 	config.Producer.Return.Successes = true
 	config.Net.TLS.Enable = true
 	config.Net.TLS.Config = tlsConfig
+	config.Net.DialTimeout = time.Second
+	config.Net.ReadTimeout = time.Second
+	config.Net.WriteTimeout = time.Second
 	config.Version = sarama.V0_10_2_0
-	config.Admin.Timeout = 5 * time.Second
+	config.Admin.Timeout = time.Second
+	config.Producer.Timeout = time.Second
+	config.Producer.Retry.Max = 0
+	config.Consumer.MaxWaitTime = time.Second
+	config.Consumer.Return.Errors = true
 
 	var brokers []string
 	brokers = append(brokers, strings.Split(brokersString, ",")...)
@@ -58,7 +66,10 @@ func New(brokersString, caPath, certPath, keyPath, topic string) (*Kafka, error)
 }
 
 func (k *Kafka) Handler() func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, _ *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 4*time.Second)
+		defer cancel()
+
 		// verify all brokers are working as expected
 		for _, b := range k.brokers {
 			broker := sarama.NewBroker(b)
@@ -89,7 +100,7 @@ func (k *Kafka) Handler() func(http.ResponseWriter, *http.Request) {
 			}
 		}
 
-		ts := fmt.Sprintf("%d", time.Now().Unix())
+		ts := fmt.Sprintf("%d", time.Now().UnixNano())
 
 		// test produce to topic
 		producer, err := sarama.NewSyncProducer(k.brokers, k.config)
@@ -153,7 +164,12 @@ func (k *Kafka) Handler() func(http.ResponseWriter, *http.Request) {
 			}
 		}()
 
-		consumedMessage := <-c.Messages()
+		consumedMessage, err := waitForMessage(ctx, c.Messages(), c.Errors())
+		if err != nil {
+			log.Errorf("could not consume message: %s", err)
+			http.Error(w, "consume message", http.StatusInternalServerError)
+			return
+		}
 
 		consumedValue := string(consumedMessage.Value)
 		if consumedValue != ts {
@@ -162,11 +178,37 @@ func (k *Kafka) Handler() func(http.ResponseWriter, *http.Request) {
 				consumedValue,
 				ts,
 			)
-			w.WriteHeader(http.StatusOK)
+			http.Error(w, "consumed message did not match produced message", http.StatusInternalServerError)
 			return
 		}
 
 		log.Infof("consumed same msg (%s) as we produced.", ts)
 		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func waitForMessage(ctx context.Context, messages <-chan *sarama.ConsumerMessage, consumerErrors <-chan *sarama.ConsumerError) (*sarama.ConsumerMessage, error) {
+	for {
+		select {
+		case message, ok := <-messages:
+			if !ok {
+				return nil, fmt.Errorf("messages channel closed")
+			}
+			if message == nil {
+				return nil, fmt.Errorf("received nil message")
+			}
+			return message, nil
+		case consumerErr, ok := <-consumerErrors:
+			if !ok {
+				consumerErrors = nil
+				continue
+			}
+			if consumerErr == nil {
+				continue
+			}
+			return nil, consumerErr.Err
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
 	}
 }

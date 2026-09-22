@@ -10,17 +10,27 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func Handler(ctx context.Context, client *redis.Client) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, _ *http.Request) {
+func Handler(client *redis.Client) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 4*time.Second)
+		defer cancel()
+
 		epoch := fmt.Sprintf("%d", time.Now().UnixNano())
-		err := client.Set(ctx, "foo", epoch, 0).Err()
+		key := "contests:" + epoch
+		defer func() {
+			if err := client.Del(ctx, key).Err(); err != nil {
+				log.Errorf("Deleting valkey value: %s", err)
+			}
+		}()
+
+		err := client.Set(ctx, key, epoch, time.Minute).Err()
 		if err != nil {
 			http.Error(w, fmt.Sprintf("create value: %v", err), http.StatusInternalServerError)
 			return
 		}
 		log.Info("Successfully created value in valkey")
 
-		val, err := client.Get(ctx, "foo").Result()
+		val, err := client.Get(ctx, key).Result()
 		if err != nil {
 			http.Error(w, fmt.Sprintf("get value: %v", err), http.StatusInternalServerError)
 			return
