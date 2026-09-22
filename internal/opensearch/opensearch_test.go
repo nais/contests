@@ -21,8 +21,8 @@ func TestHandlerFailsOnOpenSearchErrorStatus(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	http.HandlerFunc(Handler(client)).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/opensearch", nil))
 
-	if recorder.Code < http.StatusInternalServerError {
-		t.Fatalf("status = %d, want non-2xx", recorder.Code)
+	if recorder.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusInternalServerError)
 	}
 	if !body.closed {
 		t.Fatal("response body was not closed")
