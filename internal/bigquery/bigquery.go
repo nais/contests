@@ -14,7 +14,7 @@ type TestTableRow struct {
 	InsertTime time.Time
 }
 
-// Creates a temporary table with name current timestamp, that lasts for 1 minute. After creation it inserts a row with current timestamp as value.
+// Handler creates a temporary table with name current timestamp, that lasts for 1 minute. After creation it inserts a row with current timestamp as value.
 func Handler(dataset *bigquery.Dataset) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 4*time.Second)
