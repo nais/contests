@@ -33,17 +33,17 @@ var (
 	kafkaCertificatePath string
 	kafkaPrivateKeyPath  string
 	kafkaTopic           string
-	dbUrl                string
+	dbURL                string
 	bigQueryDatasetName  string
 	bigQueryProjectID    string
-	opensearchUri        string
+	opensearchURI        string
 	opensearchUser       string
 	opensearchPassword   string
-	valkeyUri            string
+	valkeyURI            string
 	valkeyUser           string
 	valkeyPassword       string
 	azureAppClientID     string
-	postgresUrl          string
+	postgresURL          string
 )
 
 func init() {
@@ -54,18 +54,18 @@ func init() {
 	flag.StringVar(&kafkaCertificatePath, "kafka-certificate-path", os.Getenv("KAFKA_CERTIFICATE_PATH"), "kafka certificate path")
 	flag.StringVar(&kafkaPrivateKeyPath, "kafka-private-key-path", os.Getenv("KAFKA_PRIVATE_KEY_PATH"), "kafka private key path")
 	flag.StringVar(&kafkaTopic, "contests", os.Getenv("KAFKA_TOPIC"), "kafka topic")
-	flag.StringVar(&dbUrl, "db-url", os.Getenv("NAIS_DATABASE_CONTESTS_CONTESTS_URL"), "database url")
+	flag.StringVar(&dbURL, "db-url", os.Getenv("NAIS_DATABASE_CONTESTS_CONTESTS_URL"), "database url")
 	flag.StringVar(&bigQueryDatasetName, "bigquery-dataset-name", os.Getenv("BIGQUERY_DATASET_NAME"), "name of bigquery dataset")
 	flag.StringVar(&bigQueryProjectID, "bigquery-project-id", os.Getenv("GCP_TEAM_PROJECT_ID"), "project id of bigquery dataset")
-	flag.StringVar(&opensearchUri, "opensearch-uri", os.Getenv("OPEN_SEARCH_URI"), "opensearch uri")
+	flag.StringVar(&opensearchURI, "opensearch-uri", os.Getenv("OPEN_SEARCH_URI"), "opensearch uri")
 	flag.StringVar(&opensearchUser, "opensearch-username", os.Getenv("OPEN_SEARCH_USERNAME"), "opensearch username")
 	flag.StringVar(&opensearchPassword, "opensearch-password", os.Getenv("OPEN_SEARCH_PASSWORD"), "opensearch password")
 	// Since we're still using the old redis client, we can't use VALKEY_URI_CONTESTS, as that uses `valkeys` as scheme, which the redis client won't accept
-	flag.StringVar(&valkeyUri, "valkey-uri", os.Getenv("REDIS_URI_CONTESTS"), "valkey uri")
+	flag.StringVar(&valkeyURI, "valkey-uri", os.Getenv("REDIS_URI_CONTESTS"), "valkey uri")
 	flag.StringVar(&valkeyUser, "valkey-username", os.Getenv("VALKEY_USERNAME_CONTESTS"), "valkey username")
 	flag.StringVar(&valkeyPassword, "valkey-password", os.Getenv("VALKEY_PASSWORD_CONTESTS"), "valkey password")
 	flag.StringVar(&azureAppClientID, "azure-app-client-id", os.Getenv("AZURE_APP_CLIENT_ID"), "azure app client id")
-	flag.StringVar(&postgresUrl, "postgres-url", os.Getenv("PGURL"), "postgres url")
+	flag.StringVar(&postgresURL, "postgres-url", os.Getenv("PGURL"), "postgres url")
 	flag.Parse()
 }
 
@@ -91,16 +91,16 @@ func main() {
 		log.Infof("No kafka configuration detected, skipping handler")
 	}
 
-	if dbUrl != "" {
+	if dbURL != "" {
 		log.Info("Detected database configuration for sql instance, setting up handler")
-		http.HandleFunc("/database", database.Handler(dbUrl, log.WithField("provider", "sqlinstance")))
+		http.HandleFunc("/database", database.Handler(dbURL, log.WithField("provider", "sqlinstance")))
 	} else {
 		log.Infof("No database configuration detected, skipping handler")
 	}
 
-	if postgresUrl != "" {
+	if postgresURL != "" {
 		log.Info("Detected database configuration for postgres operator, setting up handler")
-		http.HandleFunc("/postgres", database.Handler(postgresUrl, log.WithField("provider", "postgres-operator")))
+		http.HandleFunc("/postgres", database.Handler(postgresURL, log.WithField("provider", "postgres-operator")))
 	} else {
 		log.Infof("No database configuration detected, skipping handler")
 	}
@@ -118,9 +118,9 @@ func main() {
 		log.Info("No BigQuery configuration detected, skipping handler")
 	}
 
-	if opensearchUri != "" && opensearchUser != "" && opensearchPassword != "" {
+	if opensearchURI != "" && opensearchUser != "" && opensearchPassword != "" {
 		client, err := osgo.NewClient(osgo.Config{
-			Addresses: []string{opensearchUri},
+			Addresses: []string{opensearchURI},
 			Username:  opensearchUser,
 			Password:  opensearchPassword,
 		})
@@ -134,8 +134,8 @@ func main() {
 		log.Info("No opensearch configuration detected, skipping handler")
 	}
 
-	if valkeyUri != "" && valkeyUser != "" && valkeyPassword != "" {
-		valkeyOpts, err := redgo.ParseURL(valkeyUri)
+	if valkeyURI != "" && valkeyUser != "" && valkeyPassword != "" {
+		valkeyOpts, err := redgo.ParseURL(valkeyURI)
 		if err != nil {
 			log.Errorf("Detected valkey configuration, but failed to parse URI: %v", err)
 		} else {
