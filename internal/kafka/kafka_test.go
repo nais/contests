@@ -214,7 +214,7 @@ func TestBrokerConnectionClosesAfterDeadline(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer listener.Close()
+	defer func() { _ = listener.Close() }()
 	closed := make(chan struct{})
 	go func() {
 		conn, err := listener.Accept()
@@ -222,7 +222,7 @@ func TestBrokerConnectionClosesAfterDeadline(t *testing.T) {
 			close(closed)
 			return
 		}
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 		var buffer [1]byte
 		for {
 			if _, err := conn.Read(buffer[:]); err != nil {
