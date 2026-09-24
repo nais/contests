@@ -16,7 +16,11 @@ func Handler(client *redis.Client) func(http.ResponseWriter, *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 4*time.Second)
 		defer cancel()
 
-		epoch := uniqid.Suffix()
+		epoch, err := uniqid.Suffix()
+		if err != nil {
+			http.Error(w, fmt.Sprintf("generate value ID: %v", err), http.StatusInternalServerError)
+			return
+		}
 		key := "contests:" + epoch
 		defer func() {
 			cleanupCtx, cleanupCancel := context.WithTimeout(context.WithoutCancel(ctx), time.Second)
@@ -27,7 +31,7 @@ func Handler(client *redis.Client) func(http.ResponseWriter, *http.Request) {
 			}
 		}()
 
-		err := client.Set(ctx, key, epoch, time.Minute).Err()
+		err = client.Set(ctx, key, epoch, time.Minute).Err()
 		if err != nil {
 			http.Error(w, fmt.Sprintf("create value: %v", err), http.StatusInternalServerError)
 			return

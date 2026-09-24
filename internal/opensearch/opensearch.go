@@ -23,7 +23,11 @@ func Handler(client *opensearch.Client) func(http.ResponseWriter, *http.Request)
 
 		// Creating document
 		indexName := "contests"
-		epoch := uniqid.Suffix()
+		epoch, err := uniqid.Suffix()
+		if err != nil {
+			http.Error(w, fmt.Sprintf("generate document ID: %v", err), http.StatusInternalServerError)
+			return
+		}
 		indexRequest := opensearchapi.IndexRequest{
 			Index:      indexName,
 			DocumentID: epoch,

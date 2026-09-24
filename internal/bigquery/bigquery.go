@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/bigquery"
+	"github.com/nais/contests/internal/uniqid"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -29,7 +30,12 @@ func Handler(dataset *bigquery.Dataset) func(http.ResponseWriter, *http.Request)
 			return
 		}
 
-		table := dataset.Table(fmt.Sprintf("contests_%d", now.UnixNano()))
+		suffix, err := uniqid.Suffix()
+		if err != nil {
+			http.Error(w, fmt.Sprintf("generate table ID: %v", err), http.StatusInternalServerError)
+			return
+		}
+		table := dataset.Table("contests_" + suffix)
 		md := &bigquery.TableMetadata{
 			ExpirationTime: time.Now().Add(time.Minute),
 			Schema:         schema,

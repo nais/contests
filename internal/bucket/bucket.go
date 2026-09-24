@@ -31,7 +31,12 @@ func Handler(bucketName string) func(http.ResponseWriter, *http.Request) {
 			}
 		}()
 		bkt := client.Bucket(bucketName)
-		objectName := "contests-" + uniqid.Suffix()
+		suffix, err := uniqid.Suffix()
+		if err != nil {
+			http.Error(w, fmt.Sprintf("generate object ID: %v", err), http.StatusInternalServerError)
+			return
+		}
+		objectName := "contests-" + suffix
 		obj := bkt.Object(objectName)
 		defer func() {
 			cleanupCtx, cleanupCancel := context.WithTimeout(context.WithoutCancel(ctx), time.Second)

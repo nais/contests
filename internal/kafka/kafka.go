@@ -109,7 +109,11 @@ func (k *Kafka) Handler() func(http.ResponseWriter, *http.Request) {
 			}
 		}
 
-		ts := uniqid.Suffix()
+		ts, err := uniqid.Suffix()
+		if err != nil {
+			http.Error(w, fmt.Sprintf("generate message ID: %v", err), http.StatusInternalServerError)
+			return
+		}
 
 		// test produce to topic
 		producerTimeout, err := remainingTimeout(ctx)
