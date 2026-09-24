@@ -13,5 +13,5 @@ func Suffix() (string, error) {
 		return "", fmt.Errorf("generate random suffix: %w", err)
 	}
 
-	return fmt.Sprintf("%d-%s", time.Now().UnixNano(), hex.EncodeToString(bytes[:])), nil
+	return fmt.Sprintf("%d_%s", time.Now().UnixNano(), hex.EncodeToString(bytes[:])), nil
 }
