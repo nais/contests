@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/nais/contests/internal/uniqid"
 	"github.com/redis/go-redis/v9"
 	log "github.com/sirupsen/logrus"
 )
@@ -15,10 +16,13 @@ func Handler(client *redis.Client) func(http.ResponseWriter, *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 4*time.Second)
 		defer cancel()
 
-		epoch := fmt.Sprintf("%d", time.Now().UnixNano())
+		epoch := uniqid.Suffix()
 		key := "contests:" + epoch
 		defer func() {
-			if err := client.Del(ctx, key).Err(); err != nil {
+			cleanupCtx, cleanupCancel := context.WithTimeout(context.WithoutCancel(ctx), time.Second)
+			defer cleanupCancel()
+
+			if err := client.Del(cleanupCtx, key).Err(); err != nil {
 				log.Errorf("Deleting valkey value: %s", err)
 			}
 		}()

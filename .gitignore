@@ -3,3 +3,4 @@ bin
 contests
 !contests/
 .vscode/
+.gocache/

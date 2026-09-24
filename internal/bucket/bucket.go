@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
+	"github.com/nais/contests/internal/uniqid"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -30,10 +31,13 @@ func Handler(bucketName string) func(http.ResponseWriter, *http.Request) {
 			}
 		}()
 		bkt := client.Bucket(bucketName)
-		objectName := fmt.Sprintf("contests-%d", time.Now().UnixNano())
+		objectName := "contests-" + uniqid.Suffix()
 		obj := bkt.Object(objectName)
 		defer func() {
-			if err := obj.Delete(ctx); err != nil {
+			cleanupCtx, cleanupCancel := context.WithTimeout(context.WithoutCancel(ctx), time.Second)
+			defer cleanupCancel()
+
+			if err := obj.Delete(cleanupCtx); err != nil {
 				log.Errorf("Deleting bucket object: %s", err)
 			}
 		}()

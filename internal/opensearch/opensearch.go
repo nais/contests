@@ -2,6 +2,7 @@ package opensearch
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"github.com/opensearch-project/opensearch-go"
 	"github.com/opensearch-project/opensearch-go/opensearchapi"
 
+	"github.com/nais/contests/internal/uniqid"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -21,7 +23,7 @@ func Handler(client *opensearch.Client) func(http.ResponseWriter, *http.Request)
 
 		// Creating document
 		indexName := "contests"
-		epoch := fmt.Sprintf("%d", time.Now().UnixNano())
+		epoch := uniqid.Suffix()
 		indexRequest := opensearchapi.IndexRequest{
 			Index:      indexName,
 			DocumentID: epoch,
@@ -90,11 +92,19 @@ func Handler(client *opensearch.Client) func(http.ResponseWriter, *http.Request)
 }
 
 func closeResponse(response *opensearchapi.Response) error {
+	var drainErr error
 	if _, err := io.Copy(io.Discard, response.Body); err != nil {
-		return fmt.Errorf("drain response body: %w", err)
+		drainErr = fmt.Errorf("drain response body: %w", err)
 	}
+
+	var closeErr error
 	if err := response.Body.Close(); err != nil {
-		return fmt.Errorf("close response body: %w", err)
+		closeErr = fmt.Errorf("close response body: %w", err)
 	}
+
+	if drainErr != nil || closeErr != nil {
+		return errors.Join(drainErr, closeErr)
+	}
+
 	return nil
 }

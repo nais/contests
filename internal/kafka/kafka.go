@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/IBM/sarama"
+	"github.com/nais/contests/internal/uniqid"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -72,9 +73,17 @@ func (k *Kafka) Handler() func(http.ResponseWriter, *http.Request) {
 
 		// verify all brokers are working as expected
 		for _, b := range k.brokers {
+			timeout, err := remainingTimeout(ctx)
+			if err != nil {
+				log.Errorf("probe deadline exceeded before opening broker connection: %s", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			brokerConfig := withOperationTimeout(k.config, timeout)
 			broker := sarama.NewBroker(b)
 
-			if err := broker.Open(k.config); err != nil {
+			if err := broker.Open(brokerConfig); err != nil {
 				log.Errorf("opening connection to broker: %s: %s", broker.Addr(), err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
@@ -100,10 +109,17 @@ func (k *Kafka) Handler() func(http.ResponseWriter, *http.Request) {
 			}
 		}
 
-		ts := fmt.Sprintf("%d", time.Now().UnixNano())
+		ts := uniqid.Suffix()
 
 		// test produce to topic
-		producer, err := sarama.NewSyncProducer(k.brokers, k.config)
+		producerTimeout, err := remainingTimeout(ctx)
+		if err != nil {
+			log.Errorf("probe deadline exceeded before creating producer: %s", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		producer, err := sarama.NewSyncProducer(k.brokers, withOperationTimeout(k.config, producerTimeout))
 		if err != nil {
 			log.Errorf("could not create kafka producer: %s", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -135,7 +151,14 @@ func (k *Kafka) Handler() func(http.ResponseWriter, *http.Request) {
 			o,
 		)
 
-		consumer, err := sarama.NewConsumer(k.brokers, k.config)
+		consumerTimeout, err := remainingTimeout(ctx)
+		if err != nil {
+			log.Errorf("probe deadline exceeded before creating consumer: %s", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		consumer, err := sarama.NewConsumer(k.brokers, withOperationTimeout(k.config, consumerTimeout))
 		if err != nil {
 			log.Errorf("could not create kafka consumer: %s", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -185,6 +208,40 @@ func (k *Kafka) Handler() func(http.ResponseWriter, *http.Request) {
 		log.Infof("consumed same msg (%s) as we produced.", ts)
 		w.WriteHeader(http.StatusOK)
 	}
+}
+
+func remainingTimeout(ctx context.Context) (time.Duration, error) {
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		return time.Second, nil
+	}
+
+	remaining := time.Until(deadline)
+	if remaining <= 0 {
+		err := ctx.Err()
+		if err == nil {
+			return 0, context.DeadlineExceeded
+		}
+		return 0, err
+	}
+
+	return remaining, nil
+}
+
+func withOperationTimeout(base *sarama.Config, timeout time.Duration) *sarama.Config {
+	if timeout <= 0 {
+		timeout = time.Millisecond
+	}
+
+	config := *base
+	config.Net.DialTimeout = timeout
+	config.Net.ReadTimeout = timeout
+	config.Net.WriteTimeout = timeout
+	config.Admin.Timeout = timeout
+	config.Producer.Timeout = timeout
+	config.Consumer.MaxWaitTime = timeout
+
+	return &config
 }
 
 func waitForMessage(ctx context.Context, messages <-chan *sarama.ConsumerMessage, consumerErrors <-chan *sarama.ConsumerError) (*sarama.ConsumerMessage, error) {
