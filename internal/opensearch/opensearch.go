@@ -64,6 +64,7 @@ func Handler(client *opensearch.Client) func(http.ResponseWriter, *http.Request)
 				log.Errorf("cleanup document from opensearch: %s", cleanupRes.Status())
 			}
 		}()
+		cleanupDocument = !res.IsError()
 		if err := closeResponse(res); err != nil {
 			http.Error(w, fmt.Sprintf("close create document response: %v", err), http.StatusInternalServerError)
 			return
