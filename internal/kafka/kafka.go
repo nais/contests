@@ -84,6 +84,10 @@ func (k *Kafka) Handler() func(http.ResponseWriter, *http.Request) {
 	}
 }
 
+// runProbe ensures the HTTP handler returns when the request deadline expires.
+// The worker may briefly outlive the request while an in-flight Sarama
+// operation or cleanup finishes; Sarama timeouts are bounded by the same
+// request deadline.
 func runProbe(ctx context.Context, probe func(context.Context) error) error {
 	if _, err := remainingTimeout(ctx); err != nil {
 		return err
