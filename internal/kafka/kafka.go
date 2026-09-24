@@ -274,13 +274,14 @@ func remainingTimeout(ctx context.Context) (time.Duration, error) {
 
 func withOperationTimeout(base *sarama.Config, timeout time.Duration) *sarama.Config {
 	config := *base
-	config.Net.DialTimeout = timeout
-	config.Net.ReadTimeout = timeout
-	config.Net.WriteTimeout = timeout
-	config.Admin.Timeout = timeout
-	config.Producer.Timeout = timeout
-	config.Metadata.Timeout = timeout
-	config.Consumer.MaxWaitTime = timeout
+	operationTimeout := min(time.Second, timeout)
+	config.Net.DialTimeout = operationTimeout
+	config.Net.ReadTimeout = operationTimeout
+	config.Net.WriteTimeout = operationTimeout
+	config.Admin.Timeout = operationTimeout
+	config.Producer.Timeout = operationTimeout
+	config.Metadata.Timeout = operationTimeout
+	config.Consumer.MaxWaitTime = min(base.Consumer.MaxWaitTime, operationTimeout)
 	config.Metadata.Retry.Max = 0
 	config.Metadata.Retry.Backoff = 0
 	config.Producer.Retry.Max = 0

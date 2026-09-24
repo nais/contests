@@ -215,6 +215,40 @@ func TestRunProbeReturnsOnDeadlineAndCleansUp(t *testing.T) {
 	}
 }
 
+func TestRunProbeReturnsAfterSuccessfulCleanup(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+	closed := make(chan struct{})
+	base := sarama.NewConfig()
+	base.Consumer.MaxWaitTime = 10 * time.Millisecond
+	config := withOperationTimeout(base, 7*time.Second)
+
+	err := runProbe(ctx, func(ctx context.Context) error {
+		defer func() {
+			<-time.After(config.Consumer.MaxWaitTime)
+			close(closed)
+		}()
+		messages := make(chan *sarama.ConsumerMessage, 1)
+		messages <- &sarama.ConsumerMessage{Value: []byte("produced")}
+		message, err := waitForMessage(ctx, messages, nil)
+		if err != nil {
+			return err
+		}
+		if string(message.Value) != "produced" {
+			return errors.New("consumed message did not match produced message")
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("successful probe returned error after cleanup: %v", err)
+	}
+	select {
+	case <-closed:
+	default:
+		t.Fatal("probe returned before cleanup completed")
+	}
+}
+
 func TestBrokerConnectionClosesAfterDeadline(t *testing.T) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -267,34 +301,44 @@ func TestOperationTimeoutConfig(t *testing.T) {
 	base := sarama.NewConfig()
 	base.Version = sarama.V0_10_2_0
 	base.Net.TLS.Enable = true
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-	defer cancel()
-	timeout, err := remainingTimeout(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if timeout <= 0 || timeout > 100*time.Millisecond {
-		t.Fatalf("remaining timeout = %s, want within 100ms", timeout)
-	}
-	config := withOperationTimeout(base, timeout)
-	for name, operationTimeout := range map[string]time.Duration{
-		"dial": config.Net.DialTimeout, "read": config.Net.ReadTimeout,
-		"write": config.Net.WriteTimeout, "producer": config.Producer.Timeout,
-		"metadata": config.Metadata.Timeout,
+	base.Consumer.MaxWaitTime = time.Second
+	for _, test := range []struct {
+		name        string
+		remaining   time.Duration
+		baseWait    time.Duration
+		wantTimeout time.Duration
+		wantMaxWait time.Duration
+	}{
+		{"long budget", 7 * time.Second, time.Second, time.Second, time.Second},
+		{"short budget", 20 * time.Millisecond, time.Second, 20 * time.Millisecond, 20 * time.Millisecond},
+		{"shorter base wait", 7 * time.Second, 250 * time.Millisecond, time.Second, 250 * time.Millisecond},
 	} {
-		if operationTimeout != timeout {
-			t.Errorf("%s timeout = %s, want remaining deadline %s", name, operationTimeout, timeout)
-		}
-	}
-	if config.Metadata.Retry.Max != 0 || config.Metadata.Retry.Backoff != 0 ||
-		config.Producer.Retry.Max != 0 || config.Producer.Retry.Backoff != 0 ||
-		config.Consumer.Retry.Max != 1 || config.Consumer.Retry.Backoff != 0 {
-		t.Fatal("probe config retained retry delays")
-	}
-	if config.Version != base.Version || !config.Net.TLS.Enable {
-		t.Fatal("probe config changed Kafka version or TLS")
-	}
-	if base.Metadata.Retry.Max == 0 || base.Metadata.Timeout != 0 {
-		t.Fatal("probe config changed base config")
+		t.Run(test.name, func(t *testing.T) {
+			base.Consumer.MaxWaitTime = test.baseWait
+			config := withOperationTimeout(base, test.remaining)
+			for name, operationTimeout := range map[string]time.Duration{
+				"dial": config.Net.DialTimeout, "read": config.Net.ReadTimeout,
+				"write": config.Net.WriteTimeout, "admin": config.Admin.Timeout,
+				"producer": config.Producer.Timeout, "metadata": config.Metadata.Timeout,
+			} {
+				if operationTimeout != test.wantTimeout || operationTimeout > test.remaining {
+					t.Errorf("%s timeout = %s, want %s within remaining %s", name, operationTimeout, test.wantTimeout, test.remaining)
+				}
+			}
+			if config.Consumer.MaxWaitTime != test.wantMaxWait || config.Consumer.MaxWaitTime > test.remaining {
+				t.Errorf("consumer max wait = %s, want %s within remaining %s", config.Consumer.MaxWaitTime, test.wantMaxWait, test.remaining)
+			}
+			if config.Metadata.Retry.Max != 0 || config.Metadata.Retry.Backoff != 0 ||
+				config.Producer.Retry.Max != 0 || config.Producer.Retry.Backoff != 0 ||
+				config.Consumer.Retry.Max != 1 || config.Consumer.Retry.Backoff != 0 {
+				t.Fatal("probe config retained retry delays")
+			}
+			if config.Version != base.Version || !config.Net.TLS.Enable {
+				t.Fatal("probe config changed Kafka version or TLS")
+			}
+			if base.Metadata.Retry.Max == 0 || base.Metadata.Timeout != 0 || base.Consumer.MaxWaitTime != test.baseWait {
+				t.Fatal("probe config changed base config")
+			}
+		})
 	}
 }
