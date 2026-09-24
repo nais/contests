@@ -133,8 +133,11 @@ func (k *Kafka) probe(ctx context.Context) error {
 				log.Errorf("could not close connection to broker %s: %s", broker.Addr(), closeErr)
 			}
 
+if err == nil {
+				err = fmt.Errorf("broker is not connected")
+			}
 			log.Errorf("verifying connection to broker: %s: %s", broker.Addr(), err)
-			return fmt.Errorf("verifying connection to broker %s: %v", broker.Addr(), err)
+			return fmt.Errorf("verifying connection to broker %s: %w", broker.Addr(), err)
 		}
 
 		log.Infof("Successfully connected to Kafka broker: %s", broker.Addr())
