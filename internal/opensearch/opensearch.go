@@ -39,6 +39,31 @@ func Handler(client *opensearch.Client) func(http.ResponseWriter, *http.Request)
 			http.Error(w, fmt.Sprintf("create document: %v", err), http.StatusInternalServerError)
 			return
 		}
+		cleanupDocument := false
+		defer func() {
+			if !cleanupDocument {
+				return
+			}
+
+			cleanupCtx, cleanupCancel := context.WithTimeout(context.WithoutCancel(ctx), time.Second)
+			defer cleanupCancel()
+
+			cleanupRes, cleanupErr := opensearchapi.DeleteRequest{
+				Index:      indexName,
+				DocumentID: epoch,
+			}.Do(cleanupCtx, client)
+			if cleanupErr != nil {
+				log.Errorf("cleanup document from opensearch: %s", cleanupErr)
+				return
+			}
+			if err := closeResponse(cleanupRes); err != nil {
+				log.Errorf("close cleanup document response: %s", err)
+				return
+			}
+			if cleanupRes.IsError() {
+				log.Errorf("cleanup document from opensearch: %s", cleanupRes.Status())
+			}
+		}()
 		if err := closeResponse(res); err != nil {
 			http.Error(w, fmt.Sprintf("close create document response: %v", err), http.StatusInternalServerError)
 			return
@@ -48,6 +73,7 @@ func Handler(client *opensearch.Client) func(http.ResponseWriter, *http.Request)
 			return
 		}
 		log.Info("Successfully created document in opensearch")
+		cleanupDocument = true
 
 		// Retrieving same document
 		getRequest := opensearchapi.GetRequest{
@@ -89,6 +115,7 @@ func Handler(client *opensearch.Client) func(http.ResponseWriter, *http.Request)
 			http.Error(w, fmt.Sprintf("delete document: %s", deleteRes.Status()), http.StatusInternalServerError)
 			return
 		}
+		cleanupDocument = false
 		log.Info("Successfully deleted document from opensearch")
 
 		w.WriteHeader(http.StatusOK)

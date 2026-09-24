@@ -115,3 +115,16 @@ func TestWaitForMessageTimeout(t *testing.T) {
 		t.Fatalf("error = %v, want %v", err, context.DeadlineExceeded)
 	}
 }
+
+func TestRemainingTimeoutCancellation(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	cancel()
+
+	_, err := remainingTimeout(ctx)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("error = %v, want %v", err, context.Canceled)
+	}
+}

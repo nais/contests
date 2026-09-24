@@ -55,6 +55,38 @@ func TestHandlerClosesEveryOpenSearchResponseBody(t *testing.T) {
 	}
 }
 
+func TestHandlerCleansUpDocumentAfterReadFailure(t *testing.T) {
+	t.Parallel()
+
+	requests := 0
+	client := newTestClient(t, roundTripper(func(request *http.Request) (*http.Response, error) {
+		requests++
+		switch requests {
+		case 1:
+			return response(http.StatusOK, &trackingBody{Reader: bytes.NewReader(nil)}), nil
+		case 2:
+			return response(http.StatusOK, &trackingBody{Reader: bytes.NewReader(nil)}), nil
+		case 3:
+			return response(http.StatusInternalServerError, &trackingBody{Reader: bytes.NewReader(nil)}), nil
+		case 4:
+			return response(http.StatusOK, &trackingBody{Reader: bytes.NewReader(nil)}), nil
+		default:
+			t.Fatalf("unexpected request %d: %s", requests, request.URL.Path)
+			return nil, nil
+		}
+	}))
+
+	recorder := httptest.NewRecorder()
+	http.HandlerFunc(Handler(client)).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/opensearch", nil))
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusInternalServerError)
+	}
+	if requests != 4 {
+		t.Fatalf("request count = %d, want 4", requests)
+	}
+}
+
 func newTestClient(t *testing.T, transport http.RoundTripper) *osgo.Client {
 	t.Helper()
 

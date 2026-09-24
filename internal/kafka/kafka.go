@@ -215,6 +215,10 @@ func (k *Kafka) Handler() func(http.ResponseWriter, *http.Request) {
 }
 
 func remainingTimeout(ctx context.Context) (time.Duration, error) {
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
+
 	deadline, ok := ctx.Deadline()
 	if !ok {
 		return time.Second, nil
