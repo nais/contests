@@ -215,35 +215,47 @@ func TestRunProbeReturnsOnDeadlineAndCleansUp(t *testing.T) {
 	}
 }
 
-func TestRunProbeReturnsAfterSuccessfulCleanup(t *testing.T) {
+func TestRunProbeWaitsForCleanup(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	defer cancel()
-	closed := make(chan struct{})
-	base := sarama.NewConfig()
-	base.Consumer.MaxWaitTime = 10 * time.Millisecond
-	config := withOperationTimeout(base, 7*time.Second)
+	cleanupStarted := make(chan struct{})
+	allowCleanup := make(chan struct{})
+	cleanupDone := make(chan struct{})
+	result := make(chan error, 1)
 
-	err := runProbe(ctx, func(ctx context.Context) error {
-		defer func() {
-			<-time.After(config.Consumer.MaxWaitTime)
-			close(closed)
-		}()
-		messages := make(chan *sarama.ConsumerMessage, 1)
-		messages <- &sarama.ConsumerMessage{Value: []byte("produced")}
-		message, err := waitForMessage(ctx, messages, nil)
-		if err != nil {
-			return err
-		}
-		if string(message.Value) != "produced" {
-			return errors.New("consumed message did not match produced message")
-		}
-		return nil
-	})
-	if err != nil {
-		t.Fatalf("successful probe returned error after cleanup: %v", err)
+	go func() {
+		result <- runProbe(ctx, func(context.Context) error {
+			defer func() {
+				close(cleanupStarted)
+				<-allowCleanup
+				close(cleanupDone)
+			}()
+			return nil
+		})
+	}()
+
+	select {
+	case <-cleanupStarted:
+	case <-ctx.Done():
+		t.Fatal("probe cleanup did not start")
 	}
 	select {
-	case <-closed:
+	case err := <-result:
+		t.Fatalf("runProbe returned before cleanup completed: %v", err)
+	default:
+	}
+	close(allowCleanup)
+
+	select {
+	case err := <-result:
+		if err != nil {
+			t.Fatalf("successful probe returned error after cleanup: %v", err)
+		}
+	case <-ctx.Done():
+		t.Fatal("runProbe did not return after cleanup completed")
+	}
+	select {
+	case <-cleanupDone:
 	default:
 		t.Fatal("probe returned before cleanup completed")
 	}
