@@ -21,6 +21,8 @@ type Kafka struct {
 	topic   string
 }
 
+const probeTimeout = 8 * time.Second
+
 func New(brokersString, caPath, certPath, keyPath, topic string) (*Kafka, error) {
 	keypair, err := tls.LoadX509KeyPair(certPath, keyPath)
 	if err != nil {
@@ -68,15 +70,11 @@ func New(brokersString, caPath, certPath, keyPath, topic string) (*Kafka, error)
 
 func (k *Kafka) Handler() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := context.WithTimeout(r.Context(), 4*time.Second)
+		ctx, cancel := context.WithTimeout(r.Context(), probeTimeout)
 		defer cancel()
 
-		if _, err := remainingTimeout(ctx); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
 		if err := runProbe(ctx, k.probe); err != nil {
+			log.Errorf("Kafka probe failed: %s", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

@@ -166,6 +166,12 @@ func TestRemainingTimeoutNeedsUsableDeadline(t *testing.T) {
 	}
 }
 
+func TestKafkaProbeTimeout(t *testing.T) {
+	if probeTimeout != 8*time.Second {
+		t.Fatalf("probe timeout = %s, want 8s", probeTimeout)
+	}
+}
+
 func TestExpiredRequestReturnsWithoutConnecting(t *testing.T) {
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
 	defer cancel()
@@ -261,14 +267,23 @@ func TestOperationTimeoutConfig(t *testing.T) {
 	base := sarama.NewConfig()
 	base.Version = sarama.V0_10_2_0
 	base.Net.TLS.Enable = true
-	config := withOperationTimeout(base, 20*time.Millisecond)
-	for name, timeout := range map[string]time.Duration{
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	timeout, err := remainingTimeout(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if timeout <= 0 || timeout > 100*time.Millisecond {
+		t.Fatalf("remaining timeout = %s, want within 100ms", timeout)
+	}
+	config := withOperationTimeout(base, timeout)
+	for name, operationTimeout := range map[string]time.Duration{
 		"dial": config.Net.DialTimeout, "read": config.Net.ReadTimeout,
 		"write": config.Net.WriteTimeout, "producer": config.Producer.Timeout,
 		"metadata": config.Metadata.Timeout,
 	} {
-		if timeout != 20*time.Millisecond {
-			t.Errorf("%s timeout = %s, want 20ms", name, timeout)
+		if operationTimeout != timeout {
+			t.Errorf("%s timeout = %s, want remaining deadline %s", name, operationTimeout, timeout)
 		}
 	}
 	if config.Metadata.Retry.Max != 0 || config.Metadata.Retry.Backoff != 0 ||
