@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"cloud.google.com/go/bigquery"
+	"github.com/nais/contests/internal/uniqid"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -15,9 +15,12 @@ type TestTableRow struct {
 	InsertTime time.Time
 }
 
-// Creates a temporary table with name current timestamp, that lasts for 1 minute. After creation it inserts a row with current timestamp as value.
-func Handler(ctx context.Context, dataset *bigquery.Dataset) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, _ *http.Request) {
+// Handler creates a temporary table with a unique timestamp/random name that lasts for 1 minute. After creation it inserts a row with the current timestamp as its value.
+func Handler(dataset *bigquery.Dataset) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 4*time.Second)
+		defer cancel()
+
 		now := time.Now()
 
 		row := TestTableRow{InsertTime: now}
@@ -27,8 +30,12 @@ func Handler(ctx context.Context, dataset *bigquery.Dataset) func(http.ResponseW
 			return
 		}
 
-		timestamp := strconv.FormatInt(now.Unix(), 10)
-		table := dataset.Table(timestamp)
+		suffix, err := uniqid.Suffix()
+		if err != nil {
+			http.Error(w, fmt.Sprintf("generate table ID: %v", err), http.StatusInternalServerError)
+			return
+		}
+		table := dataset.Table("contests_" + suffix)
 		md := &bigquery.TableMetadata{
 			ExpirationTime: time.Now().Add(time.Minute),
 			Schema:         schema,

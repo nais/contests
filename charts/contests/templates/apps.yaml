@@ -12,6 +12,8 @@ spec:
         - application: {{ .Chart.Name }}-blackbox-exporter
   image: "{{ .Values.contests.image.repository }}/{{ .Values.contests.image.name }}:{{ .Chart.Version }}"
   port: 8080
+  prometheus:
+    enabled: true
   replicas:
     min: 1
     max: 1

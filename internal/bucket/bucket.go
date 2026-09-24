@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
+	"github.com/nais/contests/internal/uniqid"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -15,7 +16,7 @@ const payload = "data"
 
 func Handler(bucketName string) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(r.Context(), 4*time.Second)
 		defer cancel()
 
 		client, err := storage.NewClient(ctx)
@@ -30,7 +31,21 @@ func Handler(bucketName string) func(http.ResponseWriter, *http.Request) {
 			}
 		}()
 		bkt := client.Bucket(bucketName)
-		obj := bkt.Object(payload)
+		suffix, err := uniqid.Suffix()
+		if err != nil {
+			http.Error(w, fmt.Sprintf("generate object ID: %v", err), http.StatusInternalServerError)
+			return
+		}
+		objectName := "contests-" + suffix
+		obj := bkt.Object(objectName)
+		defer func() {
+			cleanupCtx, cleanupCancel := context.WithTimeout(context.WithoutCancel(ctx), time.Second)
+			defer cleanupCancel()
+
+			if err := obj.Delete(cleanupCtx); err != nil {
+				log.Errorf("Deleting bucket object: %s", err)
+			}
+		}()
 
 		writer := obj.NewWriter(ctx)
 		if _, err := fmt.Fprint(writer, payload); err != nil {
