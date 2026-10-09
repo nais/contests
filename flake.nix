@@ -13,6 +13,7 @@
         devShells.default = pkgs.mkShellNoCC {
           packages = with pkgs; [
             go_latest
+            mise
           ];
         };
       }
