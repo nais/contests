@@ -4,3 +4,4 @@ contests
 !contests/
 .vscode/
 .gocache/
+.direnv/
