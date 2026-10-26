@@ -287,7 +287,7 @@ func TestBrokerConnectionClosesAfterDeadline(t *testing.T) {
 	config := sarama.NewConfig()
 	config.Net.TLS.Enable = true
 	config.Net.TLS.Config = &tls.Config{MinVersion: tls.VersionTLS12}
-	config.Version = sarama.V0_10_2_0
+	config.Version = sarama.MaxVersion
 	k := &Kafka{config: config, brokers: []string{listener.Addr().String()}}
 	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Millisecond)
 	defer cancel()
@@ -311,7 +311,7 @@ func TestBrokerConnectionClosesAfterDeadline(t *testing.T) {
 
 func TestOperationTimeoutConfig(t *testing.T) {
 	base := sarama.NewConfig()
-	base.Version = sarama.V0_10_2_0
+	base.Version = sarama.MaxVersion
 	base.Net.TLS.Enable = true
 	base.Consumer.MaxWaitTime = time.Second
 	for _, test := range []struct {

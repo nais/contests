@@ -51,7 +51,7 @@ func New(brokersString, caPath, certPath, keyPath, topic string) (*Kafka, error)
 	config.Net.DialTimeout = time.Second
 	config.Net.ReadTimeout = time.Second
 	config.Net.WriteTimeout = time.Second
-	config.Version = sarama.V0_10_2_0
+	config.Version = sarama.MaxVersion
 	config.Admin.Timeout = time.Second
 	config.Producer.Timeout = time.Second
 	config.Producer.Retry.Max = 0
