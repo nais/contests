@@ -2,6 +2,7 @@ dependencies:
   - allOf:
     - monitoring
     - nais-crds
+    - pgrator
 environmentKinds:
   - tenant
 values:
