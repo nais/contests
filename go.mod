@@ -3,7 +3,7 @@ module github.com/nais/contests
 go 1.26.10
 
 require (
-	cloud.google.com/go/bigquery v1.86.1
+	cloud.google.com/go/bigquery v1.86.2
 	cloud.google.com/go/storage v1.70.0
 	github.com/lib/pq v1.12.3
 	github.com/sirupsen/logrus v1.10.2
