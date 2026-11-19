@@ -5,7 +5,7 @@ go 1.26.11
 require (
 	cloud.google.com/go/storage v1.71.0
 	github.com/lib/pq v1.12.3
-	google.golang.org/api v0.312.0
+	google.golang.org/api v0.315.0
 )
 
 require (
