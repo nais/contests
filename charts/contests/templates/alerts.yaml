@@ -1,89 +1,82 @@
-{{ if .Values.alerts.enabled }}
+{{- if .Values.alerts.enabled }}
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
   name: nais-contests-alerts
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "contests.labels" . | nindent 4 }}
+    nais.io/prometheus: nais
 spec:
   groups:
     - name: nais-contests-alerts
       rules:
+        {{- if ne (include "contests.checks" .) "none" }}
+        - alert: ContestsCheckFailing
+          expr: contests_check_success{namespace="{{ .Release.Namespace }}", app="contests"} == 0
+          for: 5m
+          labels:
+            namespace: {{ .Release.Namespace }}
+            severity: critical
+            ping: nais-vakt
+          annotations:
+            summary: 'Contests {{ "{{ $labels.check }}" }} check is failing'
+            action: Check contests logs and the corresponding service in {{ .Release.Namespace }}.
+        - alert: ContestsChecksMissing
+          expr: |
+            (time() - contests_check_last_run_timestamp_seconds{namespace="{{ .Release.Namespace }}", app="contests"} > 180)
+            {{- range splitList "," (include "contests.checks" .) }}
+            or absent(contests_check_last_run_timestamp_seconds{namespace="{{ $.Release.Namespace }}", app="contests", check="{{ . }}"})
+            {{- end }}
+          for: 5m
+          labels:
+            namespace: {{ .Release.Namespace }}
+            severity: critical
+            ping: nais-vakt
+          annotations:
+            summary: Contests connectivity checks are not reporting
+            action: Check that the contests pod is running and its metrics are being scraped.
+        {{- end }}
         - alert: External URLs failing
-          expr: sum(probe_success{job="probe/nais-system/contests-probes", instance=~"https://.*dns.*"}) == 0
+          expr: sum(probe_success{job="probe/{{ .Release.Namespace }}/{{ .Release.Name }}-probes", instance=~"https://.*dns.*"}) == 0
           for: 5m
           labels:
-            namespace: nais-system
+            namespace: {{ .Release.Namespace }}
             severity: critical
             ping: nais-vakt
           annotations:
-            consequence: External URLs is unavailable
-            action: "Check external connectivity from cluster. `k exec -it contests-blackbox-exporter-<id> -- wget -O- <url>`"
-        {{- if .Values.contests.storage.enabled }}
-        - alert: Database connectivity test failing
-          expr: probe_success{instance=~"http://contests/database"} == 0
-          for: 5m
-          labels:
-            namespace: nais-system
-            severity: critical
-            ping: nais-vakt
-          annotations:
-            consequence: Databases may be unavailable in cluster.
-            action: Check logs for contests appliction and cloudsql-proxy sidecar
-        - alert: Bucket connectivity test failing
-          expr: probe_success{instance=~"http://contests/bucket"} == 0
-          for: 5m
-          labels:
-            namespace: nais-system
-            severity: critical
-            ping: nais-vakt
-          annotations:
-            consequence: Buckets may be unavailable in cluster.
-            action: Check logs for contests appliction
-        {{- end }}
-        {{- if .Values.contests.kafka.enabled }}
-        - alert: Kafka connectivity test failing
-          expr: probe_success{instance=~"http://contests/kafka"} == 0
-          for: 5m
-          labels:
-            namespace: nais-system
-            severity: critical
-            ping: nais-vakt
-          annotations:
-            consequence: Kafka may be unavailable in cluster.
-            action: Check logs for contests appliction
-        {{- end }}
+            summary: Both allowed external URLs are unavailable
+            action: Check external connectivity from contests-blackbox-exporter.
         {{- if .Values.contests.accessPolicy.enabled }}
         - alert: Access policy allowed service failing
-          expr: probe_success{instance=~"http://contests/ping"} == 0
+          expr: probe_success{job="probe/{{ .Release.Namespace }}/{{ .Release.Name }}-probes", instance="http://contests/ping"} == 0
           for: 5m
           labels:
-            namespace: nais-system
+            namespace: {{ .Release.Namespace }}
             severity: critical
             ping: nais-vakt
           annotations:
-            consequence: Access policies may not work correctly or contests service down and other connectivity alerts not working
-            action: Check that contests pods are running and that access policies are configured correctly for contests and blackbox exporter.
-            summary: Blackbox exporter is unable to access 'contests' in cluster. Contests may be down or network policies not working according to configuration
+            summary: Blackbox exporter cannot access contests
+            action: Check contests health and access policies on contests and blackbox exporter.
         - alert: Access policy denied service allowed
-          expr: probe_success{instance=~"http://contests-noaccess/ping"} == 1
+          expr: probe_success{job="probe/{{ .Release.Namespace }}/{{ .Release.Name }}-probes", instance="http://contests-noaccess/ping"} == 1
           for: 5m
           labels:
-            namespace: nais-system
+            namespace: {{ .Release.Namespace }}
             severity: critical
             ping: nais-vakt
           annotations:
-            consequence: Access policies may not work correctly in cluster.
-            action: Check that access policies are configured correctly for contests and blackbox exporter.
-            summary: Blackbox exporter is able to access 'contests-noaccess' in cluster when it shouldn't.
+            summary: Blackbox exporter can access contests-noaccess without permission
+            action: Check access policies on contests-noaccess and blackbox exporter.
         - alert: External URL allowed
-          expr: probe_success{instance="https://google.com"} == 1
+          expr: probe_success{job="probe/{{ .Release.Namespace }}/{{ .Release.Name }}-probes", instance="https://google.com"} == 1
           for: 5m
           labels:
-            namespace: nais-system
+            namespace: {{ .Release.Namespace }}
             severity: critical
             ping: nais-vakt
           annotations:
-            consequence: Access policies may not work correctly in cluster.
-            action: Check that access policies are configured correctly for contests and blackbox exporter.
-            summary: Blackbox exporter is able to access 'https://google.com' when it shouldn't.
+            summary: Blackbox exporter can access google.com without permission
+            action: Check external access policies on blackbox exporter.
         {{- end }}
 {{- end }}

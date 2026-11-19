@@ -1,90 +1,61 @@
+// Package bucket checks object storage by writing, reading and deleting an object.
 package bucket
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"time"
 
 	"cloud.google.com/go/storage"
 	"github.com/nais/contests/internal/uniqid"
-	log "github.com/sirupsen/logrus"
 )
 
-const payload = "data"
+const payload = "contests"
 
-func Handler(bucketName string) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := context.WithTimeout(r.Context(), 4*time.Second)
-		defer cancel()
-
-		client, err := storage.NewClient(ctx)
-		if err != nil {
-			log.Errorf("Creating bucket client: %s", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		defer func() {
-			if err := client.Close(); err != nil {
-				log.Errorf("Closing bucket client: %s", err)
-			}
-		}()
-		bkt := client.Bucket(bucketName)
-		suffix, err := uniqid.Suffix()
-		if err != nil {
-			http.Error(w, fmt.Sprintf("generate object ID: %v", err), http.StatusInternalServerError)
-			return
-		}
-		objectName := "contests-" + suffix
-		obj := bkt.Object(objectName)
-		defer func() {
-			cleanupCtx, cleanupCancel := context.WithTimeout(context.WithoutCancel(ctx), time.Second)
-			defer cleanupCancel()
-
-			if err := obj.Delete(cleanupCtx); err != nil {
-				log.Errorf("Deleting bucket object: %s", err)
-			}
-		}()
-
-		writer := obj.NewWriter(ctx)
-		if _, err := fmt.Fprint(writer, payload); err != nil {
-			log.Errorf("Writing data to bucket: %s", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		if err := writer.Close(); err != nil {
-			log.Errorf("Closing bucket writer: %s", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		log.Info("Successfully wrote data to bucket")
-
-		reader, err := obj.NewReader(ctx)
-		if err != nil {
-			log.Errorf("Creating bucket reader: %s", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		defer func() {
-			if err := reader.Close(); err != nil {
-				log.Errorf("Closing bucket reader: %s", err)
-			}
-		}()
-		b, err := io.ReadAll(reader)
-		if err != nil {
-			log.Errorf("Reading data from bucket: %s", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		if string(b) != payload {
-			log.Errorf("Wut, read wrong data")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		log.Info("Successfully read same data as we wrote from bucket")
-
-		w.WriteHeader(http.StatusOK)
+// Check verifies bucket access using the workload identity.
+func Check(ctx context.Context, name string) (err error) {
+	if name == "" {
+		return errors.New("BUCKET_NAME is required")
 	}
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		return fmt.Errorf("create storage client: %w", err)
+	}
+	defer func() { err = errors.Join(err, client.Close()) }()
+	return check(ctx, client.Bucket(name))
+}
+
+func check(ctx context.Context, bucket *storage.BucketHandle) (err error) {
+	suffix, err := uniqid.Suffix()
+	if err != nil {
+		return err
+	}
+	obj := bucket.Object("contests-" + suffix)
+	defer func() {
+		cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Second)
+		defer cancel()
+		if cleanupErr := obj.Delete(cleanupCtx); cleanupErr != nil {
+			err = errors.Join(err, fmt.Errorf("delete object: %w", cleanupErr))
+		}
+	}()
+
+	writer := obj.NewWriter(ctx)
+	_, writeErr := io.WriteString(writer, payload)
+	if err := errors.Join(writeErr, writer.Close()); err != nil {
+		return fmt.Errorf("write object: %w", err)
+	}
+	reader, err := obj.NewReader(ctx)
+	if err != nil {
+		return fmt.Errorf("open object: %w", err)
+	}
+	value, readErr := io.ReadAll(io.LimitReader(reader, int64(len(payload)+1)))
+	if err := errors.Join(readErr, reader.Close()); err != nil {
+		return fmt.Errorf("read object: %w", err)
+	}
+	if string(value) != payload {
+		return errors.New("object content did not match")
+	}
+	return nil
 }
