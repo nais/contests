@@ -1,62 +1,25 @@
-{{/*
-Expand the name of the chart.
-*/}}
-{{- define "contests.name" -}}
-{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
-{{- end }}
-
-{{/*
-Create a default fully qualified app name.
-We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
-If release name contains chart name it will be used as a full name.
-*/}}
-{{- define "contests.fullname" -}}
-{{- if .Values.fullnameOverride }}
-{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
-{{- else }}
-{{- $name := default .Chart.Name .Values.nameOverride }}
-{{- if contains $name .Release.Name }}
-{{- .Release.Name | trunc 63 | trimSuffix "-" }}
-{{- else }}
-{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
-{{- end }}
-{{- end }}
-{{- end }}
-
-{{/*
-Create chart name and version as used by the chart label.
-*/}}
-{{- define "contests.chart" -}}
-{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
-{{- end }}
-
-{{/*
-Common labels
-*/}}
 {{- define "contests.labels" -}}
-helm.sh/chart: {{ include "contests.chart" . }}
-{{ include "contests.selectorLabels" . }}
-{{- if .Chart.AppVersion }}
-app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
-{{- end }}
-app.kubernetes.io/managed-by: {{ .Release.Service }}
-{{- end }}
-
-{{/*
-Selector labels
-*/}}
-{{- define "contests.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "contests.name" . }}
+helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | quote }}
+app.kubernetes.io/name: contests
 app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+team: nais
 {{- end }}
 
-{{/*
-Create the name of the service account to use
-*/}}
-{{- define "contests.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create }}
-{{- default (include "contests.fullname" .) .Values.serviceAccount.name }}
-{{- else }}
-{{- default "default" .Values.serviceAccount.name }}
+{{- define "contests.checks" -}}
+{{- $checks := list -}}
+{{- range $name := list "postgres" "kafka" "bucket" "valkey" -}}
+{{- if (index $.Values.contests $name).enabled -}}
+{{- $checks = append $checks $name -}}
+{{- end -}}
+{{- end -}}
+{{- if not $checks -}}
+none
+{{- else -}}
+{{- join "," $checks -}}
+{{- end -}}
 {{- end }}
+
+{{- define "contests.bucketName" -}}
+{{- printf "contests-%s-%s" .Values.fasit.tenant.name .Values.fasit.env.name -}}
 {{- end }}

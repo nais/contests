@@ -1,8 +1,8 @@
----
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ .Release.Name }}-blackbox-exporter
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "contests.labels" . | nindent 4 }}
 data:
@@ -14,26 +14,18 @@ data:
         http:
           valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
           follow_redirects: true
-          preferred_ip_protocol: "ip4"
-          ip_protocol_fallback: false
-      http_kafka:
-        prober: http
-        timeout: 10s
-        http:
-          valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
-          follow_redirects: true
-          preferred_ip_protocol: "ip4"
+          preferred_ip_protocol: ip4
           ip_protocol_fallback: false
 ---
 apiVersion: nais.io/v1alpha1
 kind: Application
 metadata:
   name: {{ .Release.Name }}-blackbox-exporter
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "contests.labels" . | nindent 4 }}
-    team: nais
 spec:
-  image: prom/blackbox-exporter:v0.23.0
+  image: prom/blackbox-exporter:v0.29.1
   accessPolicy:
     outbound:
       rules:
@@ -46,50 +38,52 @@ spec:
       mountPath: /etc/blackbox_exporter
   port: 9115
   replicas:
-    max: 2
     min: 2
+    max: 2
   skipCaBundle: true
   resources:
-    limits:
-      memory: 128Mi
     requests:
       cpu: 50m
       memory: 64Mi
+    limits:
+      memory: 128Mi
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: {{ .Release.Name }}-prometheus-to-blackbox-exporter
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "contests.labels" . | nindent 4 }}
 spec:
   ingress:
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          name: nais-system
-      podSelector:
-        matchLabels:
-          app.kubernetes.io/name: prometheus
-    - namespaceSelector:
-        matchLabels:
-          name: nais-system
-      podSelector:
-        matchLabels:
-          app.kubernetes.io/name: alloy
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: nais-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+        - namespaceSelector:
+            matchLabels:
+              name: nais-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: alloy
   podSelector:
     matchLabels:
       app: {{ .Release.Name }}-blackbox-exporter
   policyTypes:
-  - Ingress
+    - Ingress
 ---
-kind: Probe
 apiVersion: monitoring.coreos.com/v1
+kind: Probe
 metadata:
   name: {{ .Release.Name }}-probes
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "contests.labels" . | nindent 4 }}
-    nais.io/prometheus: "nais"
+    nais.io/prometheus: nais
 spec:
   interval: 60s
   module: http_2xx
@@ -99,51 +93,12 @@ spec:
     staticConfig:
       static:
         - http://contests/ping
-        {{- if .Values.contests.storage.enabled }}
-        - http://contests/database
-        - http://contests/bucket
-        {{- end }}
-        {{- if .Values.contests.bigquery.enabled }}
-        - http://contests/bigquery
-        {{- end }}
-        {{- if .Values.contests.opensearch.enabled }}
-        - http://contests/opensearch
-        {{- end }}
-        {{- if .Values.contests.valkey.enabled }}
-        - http://contests/valkey
-        {{- end }}
-        {{- if .Values.contests.azureApp.enabled }}
-        - http://contests/azure
-        {{- end }}
-        {{- if .Values.contests.postgres.enabled }}
-        - http://contests/postgres
-        {{- end }}
         {{- if .Values.contests.accessPolicy.enabled }}
         - http://contests-noaccess/ping
         - https://google.com
         {{- end }}
         - https://dns.google
         - https://1dot1dot1dot1.cloudflare-dns.com
-      {{range .Values.blackboxExporter.additionalTargetURLs }}
-        - {{ . }}
-      {{end}}
-{{- if .Values.contests.kafka.enabled }}
----
-kind: Probe
-apiVersion: monitoring.coreos.com/v1
-metadata:
-  name: {{ .Release.Name }}-kafka-probe
-  labels:
-    {{- include "contests.labels" . | nindent 4 }}
-    nais.io/prometheus: "nais"
-spec:
-  interval: 60s
-  scrapeTimeout: 12s
-  module: http_kafka
-  prober:
-    url: {{ .Release.Name }}-blackbox-exporter.{{ .Release.Namespace }}:80
-  targets:
-    staticConfig:
-      static:
-        - http://contests/kafka
-{{- end }}
+        {{- range .Values.blackboxExporter.additionalTargetURLs }}
+        - {{ . | quote }}
+        {{- end }}

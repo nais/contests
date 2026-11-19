@@ -1,15 +1,15 @@
-apiVersion: "nais.io/v1alpha1"
-kind: "Application"
+apiVersion: nais.io/v1alpha1
+kind: Application
 metadata:
   name: contests
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "contests.labels" . | nindent 4 }}
-    team: nais
 spec:
   accessPolicy:
     inbound:
       rules:
-        - application: {{ .Chart.Name }}-blackbox-exporter
+        - application: {{ .Release.Name }}-blackbox-exporter
   image: "{{ .Values.contests.image.repository }}/{{ .Values.contests.image.name }}:{{ .Chart.Version }}"
   port: 8080
   prometheus:
@@ -22,87 +22,72 @@ spec:
   readiness:
     path: /ping
   resources:
-    limits:
-      memory: 256Mi
     requests:
       cpu: 50m
       memory: 64Mi
-  {{- if (has true (list .Values.contests.storage.enabled .Values.contests.bigquery.enabled .Values.contests.kafka.enabled)) }}
+    limits:
+      memory: 128Mi
   env:
-    {{- if .Values.contests.storage.enabled }}
-    - name: "BUCKET_NAME"
-      value: "{{ .Chart.Name }}-{{ .Values.fasit.tenant.name }}-{{ .Values.fasit.env.name }}"
-    {{- end }}
-    {{- if .Values.contests.bigquery.enabled }}
-    - name: "BIGQUERY_DATASET_NAME"
-      value: contests
+    - name: CHECKS
+      value: {{ include "contests.checks" . | quote }}
+    - name: GOMEMLIMIT
+      value: 96MiB
+    {{- if .Values.contests.bucket.enabled }}
+    - name: BUCKET_NAME
+      value: {{ include "contests.bucketName" . | quote }}
     {{- end }}
     {{- if .Values.contests.kafka.enabled }}
-    - name: "KAFKA_TOPIC"
+    - name: KAFKA_TOPIC
       value: {{ .Release.Namespace }}.contests
     {{- end }}
-  {{- end }}
-  {{- if (or .Values.contests.storage.enabled .Values.contests.bigquery.enabled) }}
+  {{- if .Values.contests.bucket.enabled }}
   gcp:
-    {{- if .Values.contests.storage.enabled }}
     buckets:
-      - name: "{{ .Chart.Name }}-{{ .Values.fasit.tenant.name }}-{{ .Values.fasit.env.name }}"
-    sqlInstances:
-      - type: POSTGRES_17
-        databases:
-          - name: contests
-        tier: db-f1-micro
-    {{- end }}
-    {{- if .Values.contests.bigquery.enabled }}
-    bigQueryDatasets:
-      - name: contests
-        permission: READWRITE
-    {{- end }}
-  {{ end }}
-  {{ if .Values.contests.kafka.enabled }}
+      - name: {{ include "contests.bucketName" . | quote }}
+  {{- end }}
+  {{- if .Values.contests.kafka.enabled }}
   kafka:
-    pool: {{ .Values.contests.kafka.pool }}
-  {{ end }}
-  {{ if .Values.contests.opensearch.enabled }}
-  openSearch:
-    access: readwrite
-    instance: {{ .Release.Name }}
-  {{ end }}
-  {{ if .Values.contests.valkey.enabled }}
+    pool: {{ required "contests.kafka.pool is required when Kafka is enabled" .Values.contests.kafka.pool | quote }}
+  {{- end }}
+  {{- if .Values.contests.valkey.enabled }}
   valkey:
     - instance: contests
       access: readwrite
-  {{ end }}
-  azure:
-    application:
-      enabled: {{ .Values.contests.azureApp.enabled }}
-      tenant: nav.no
-  {{ if .Values.contests.postgres.enabled }}
-  postgres:
-    clusterName: contests
-  {{ end }}
-  ingresses:
-    - https://contests.{{ .Values.fasit.env.name }}.{{ .Values.fasit.tenant.name }}.cloud.nais.io
-
-{{ if .Values.contests.accessPolicy.enabled }}
+  {{- end }}
+  {{- if .Values.contests.postgres.enabled }}
+  uses:
+    postgres:
+      - name: contests
+        role: readwrite
+  {{- end }}
+{{- if .Values.contests.accessPolicy.enabled }}
 ---
 apiVersion: nais.io/v1alpha1
 kind: Application
 metadata:
+  name: contests-noaccess
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "contests.labels" . | nindent 4 }}
-    team: nais
-  name: contests-noaccess
 spec:
   image: "{{ .Values.contests.image.repository }}/{{ .Values.contests.image.name }}:{{ .Chart.Version }}"
   port: 8080
   replicas:
-    max: 1
     min: 1
+    max: 1
+  liveness:
+    path: /ping
+  readiness:
+    path: /ping
   resources:
-    limits:
-      memory: 128Mi
     requests:
       cpu: 50m
       memory: 64Mi
-{{ end }}
+    limits:
+      memory: 128Mi
+  env:
+    - name: CHECKS
+      value: none
+    - name: GOMEMLIMIT
+      value: 96MiB
+{{- end }}

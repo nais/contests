@@ -1,30 +1,24 @@
 fasit:
   tenant:
-    name: "tenant"
+    name: tenant
   env:
-    name: "env"
+    name: env
 contests:
   image:
     repository: europe-north1-docker.pkg.dev/nais-io/nais/images
     name: contests
   accessPolicy:
     enabled: true
-  storage:
-    enabled: true
-  bigquery:
+  postgres:
     enabled: true
   kafka:
-    enabled: false
-    pool:
-  opensearch:
-    enabled: false
+    enabled: true
+    pool: ""
+  bucket:
+    enabled: true
   valkey:
-    enabled: false
-  azureApp:
-    enabled: false
-  postgres:
-    enabled: false
+    enabled: true
 alerts:
   enabled: true
 blackboxExporter:
-  additionalTargetURLs:
+  additionalTargetURLs: []

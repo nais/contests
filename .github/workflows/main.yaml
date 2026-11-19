@@ -1,22 +1,40 @@
-name: Build and push image and chart
+name: Check, build and deploy
 
 on:
   push:
     branches:
       - main
+  pull_request:
+
+concurrency:
+  group: contests-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
-  contents: write
-  id-token: write
+  contents: read
 
 jobs:
-  build:
+  check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
+      - run: mise run check
+      - run: docker build -t contests:check .
+
+  deploy:
+    if: github.event_name == 'push'
+    permissions:
+      contents: write
+      id-token: write
     uses: nais/actions/.github/workflows/mise-build-deploy-fasit.yaml@aa4b3f170c7d73bc435f0176e99e7072814e87db
     with:
       builds-docker: true
       builds-chart: true
       deploys-to-fasit: true
-      mise-tasks: '["fmt", "check"]'
+      mise-tasks: '["check"]'
+      helm-version: v4.3.2
       targets: |
         [
           { "target": { "kind": "tenant", "tenant": "ci-nais" }, "wait": true },

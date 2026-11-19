@@ -2,200 +2,113 @@ package main
 
 import (
 	"context"
-	_ "crypto/tls"
+	"errors"
+	"flag"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
-	"strconv"
+	"os/signal"
+	"strings"
+	"sync"
+	"syscall"
 	"time"
 
-	"github.com/nais/contests/internal/opensearch"
-	"github.com/nais/contests/internal/valkey"
-
-	bq "cloud.google.com/go/bigquery"
-	_ "github.com/lib/pq"
-	"github.com/nais/contests/internal/bigquery"
 	"github.com/nais/contests/internal/bucket"
 	"github.com/nais/contests/internal/database"
 	"github.com/nais/contests/internal/kafka"
-	osgo "github.com/opensearch-project/opensearch-go"
+	"github.com/nais/contests/internal/probe"
+	"github.com/nais/contests/internal/valkey"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	redgo "github.com/redis/go-redis/v9"
-	log "github.com/sirupsen/logrus"
-	flag "github.com/spf13/pflag"
 )
-
-var (
-	bindAddr             string
-	bucketName           string
-	kafkaBrokers         string
-	kafkaCAPath          string
-	kafkaCertificatePath string
-	kafkaPrivateKeyPath  string
-	kafkaTopic           string
-	dbURL                string
-	bigQueryDatasetName  string
-	bigQueryProjectID    string
-	opensearchURI        string
-	opensearchUser       string
-	opensearchPassword   string
-	valkeyURI            string
-	valkeyUser           string
-	valkeyPassword       string
-	azureAppClientID     string
-	postgresURL          string
-)
-
-func init() {
-	flag.StringVar(&bindAddr, "bind-address", ":8080", "ip:port where http requests are served")
-	flag.StringVar(&bucketName, "bucket-name", os.Getenv("BUCKET_NAME"), "name of bucket")
-	flag.StringVar(&kafkaBrokers, "kafka-brokers", os.Getenv("KAFKA_BROKERS"), "kafka brokers")
-	flag.StringVar(&kafkaCAPath, "kafka-ca-path", os.Getenv("KAFKA_CA_PATH"), "kafka ca path")
-	flag.StringVar(&kafkaCertificatePath, "kafka-certificate-path", os.Getenv("KAFKA_CERTIFICATE_PATH"), "kafka certificate path")
-	flag.StringVar(&kafkaPrivateKeyPath, "kafka-private-key-path", os.Getenv("KAFKA_PRIVATE_KEY_PATH"), "kafka private key path")
-	flag.StringVar(&kafkaTopic, "contests", os.Getenv("KAFKA_TOPIC"), "kafka topic")
-	flag.StringVar(&dbURL, "db-url", os.Getenv("NAIS_DATABASE_CONTESTS_CONTESTS_URL"), "database url")
-	flag.StringVar(&bigQueryDatasetName, "bigquery-dataset-name", os.Getenv("BIGQUERY_DATASET_NAME"), "name of bigquery dataset")
-	flag.StringVar(&bigQueryProjectID, "bigquery-project-id", os.Getenv("GCP_TEAM_PROJECT_ID"), "project id of bigquery dataset")
-	flag.StringVar(&opensearchURI, "opensearch-uri", os.Getenv("OPEN_SEARCH_URI"), "opensearch uri")
-	flag.StringVar(&opensearchUser, "opensearch-username", os.Getenv("OPEN_SEARCH_USERNAME"), "opensearch username")
-	flag.StringVar(&opensearchPassword, "opensearch-password", os.Getenv("OPEN_SEARCH_PASSWORD"), "opensearch password")
-	// Since we're still using the old redis client, we can't use VALKEY_URI_CONTESTS, as that uses `valkeys` as scheme, which the redis client won't accept
-	flag.StringVar(&valkeyURI, "valkey-uri", os.Getenv("REDIS_URI_CONTESTS"), "valkey uri")
-	flag.StringVar(&valkeyUser, "valkey-username", os.Getenv("VALKEY_USERNAME_CONTESTS"), "valkey username")
-	flag.StringVar(&valkeyPassword, "valkey-password", os.Getenv("VALKEY_PASSWORD_CONTESTS"), "valkey password")
-	flag.StringVar(&azureAppClientID, "azure-app-client-id", os.Getenv("AZURE_APP_CLIENT_ID"), "azure app client id")
-	flag.StringVar(&postgresURL, "postgres-url", os.Getenv("PGURL"), "postgres url")
-	flag.Parse()
-}
 
 func main() {
-	ctx := context.Background()
-	http.Handle("/metrics", metricsHandler())
-	if bucketName != "" {
-		log.Infof("Detected bucket configuration, setting up handler for %s", bucketName)
-		http.HandleFunc("/bucket", bucket.Handler(bucketName))
-	} else {
-		log.Infof("No bucket configuration detected, skipping handler")
-	}
-
-	if kafkaBrokers != "" && kafkaCertificatePath != "" && kafkaPrivateKeyPath != "" && kafkaCAPath != "" {
-		log.Info("Detected Kafka configuration, setting up handler")
-		k, err := kafka.New(kafkaBrokers, kafkaCAPath, kafkaCertificatePath, kafkaPrivateKeyPath, kafkaTopic)
-		if err != nil {
-			log.Errorf("Initializing Kafka: %s", err)
-		} else {
-			http.HandleFunc("/kafka", k.Handler())
-		}
-	} else {
-		log.Infof("No kafka configuration detected, skipping handler")
-	}
-
-	if dbURL != "" {
-		log.Info("Detected database configuration for sql instance, setting up handler")
-		http.HandleFunc("/database", database.Handler(dbURL, log.WithField("provider", "sqlinstance")))
-	} else {
-		log.Infof("No database configuration detected, skipping handler")
-	}
-
-	if postgresURL != "" {
-		log.Info("Detected database configuration for postgres operator, setting up handler")
-		http.HandleFunc("/postgres", database.Handler(postgresURL, log.WithField("provider", "postgres-operator")))
-	} else {
-		log.Infof("No database configuration detected, skipping handler")
-	}
-
-	if bigQueryDatasetName != "" && bigQueryProjectID != "" {
-		bqClient, err := bq.NewClient(ctx, bigQueryProjectID)
-		if err != nil {
-			log.Errorf("Detected BigQuery configuration, but failed to set up client: %v", err)
-		} else {
-			log.Infof("Detected BigQuery configuration, setting up handler for %v in project %v", bigQueryDatasetName, bigQueryProjectID)
-			dataset := bqClient.Dataset(bigQueryDatasetName)
-			http.HandleFunc("/bigquery", bigquery.Handler(dataset))
-		}
-	} else {
-		log.Info("No BigQuery configuration detected, skipping handler")
-	}
-
-	if opensearchURI != "" && opensearchUser != "" && opensearchPassword != "" {
-		client, err := osgo.NewClient(osgo.Config{
-			Addresses: []string{opensearchURI},
-			Username:  opensearchUser,
-			Password:  opensearchPassword,
-		})
-		if err != nil {
-			log.Errorf("Detected opensearch configuration, but failed to set up client: %v", err)
-		} else {
-			log.Info("Detected opensearch configuration, setting up handler")
-			http.HandleFunc("/opensearch", opensearch.Handler(client))
-		}
-	} else {
-		log.Info("No opensearch configuration detected, skipping handler")
-	}
-
-	if valkeyURI != "" && valkeyUser != "" && valkeyPassword != "" {
-		valkeyOpts, err := redgo.ParseURL(valkeyURI)
-		if err != nil {
-			log.Errorf("Detected valkey configuration, but failed to parse URI: %v", err)
-		} else {
-			valkeyOpts.Username = valkeyUser
-			valkeyOpts.Password = valkeyPassword
-		}
-
-		if err == nil {
-			client := redgo.NewClient(valkeyOpts)
-			log.Info("Detected valkey configuration, setting up handler")
-			http.HandleFunc("/valkey", valkey.Handler(client))
-		}
-	} else {
-		log.Info("No valkey configuration detected, skipping handler")
-	}
-
-	if azureAppClientID != "" {
-		log.Info("Detected Azure app configuration, setting up handler")
-		http.HandleFunc("/azure", func(w http.ResponseWriter, _ *http.Request) {
-			if _, err := fmt.Fprintf(w, "Azure app client id: %s", azureAppClientID); err != nil {
-				log.Errorf("Writing azure response: %s", err)
-			}
-			log.Info("Successfully returned Azure app client id")
-		})
-	}
-
-	http.HandleFunc("/ping", func(w http.ResponseWriter, _ *http.Request) {
-		if _, err := fmt.Fprintf(w, "pong\n"); err != nil {
-			log.Errorf("Writing ping response: %s", err)
-		}
-	})
-
-	http.HandleFunc("/statuscode/{code}", func(r http.ResponseWriter, req *http.Request) {
-		value := req.PathValue("code")
-		code, err := strconv.Atoi(value)
-		if err != nil {
-			log.Errorf("Invalid status code %v: %v", value, err)
-			http.Error(r, "Code must be number in range [400,600)", http.StatusBadRequest)
-			return
-		}
-		if code < 400 || code > 599 {
-			log.Errorf("Invalid status code %d: in range [400,600)", code)
-			http.Error(r, "Code must be number in range [400,600)", http.StatusBadRequest)
-			return
-		}
-		message := fmt.Sprintf("This endpoint intentionally returns status code %d %s.\n", code, http.StatusText(code))
-		http.Error(r, message, code)
-	})
-
-	log.Infof("running @ %s", bindAddr)
-
-	server := &http.Server{
-		Addr:              bindAddr,
-		ReadHeaderTimeout: 10 * time.Second,
-	}
-	if err := server.ListenAndServe(); err != nil {
-		log.Fatal(err)
+	addr := flag.String("bind-address", ":8080", "HTTP listen address")
+	flag.Parse()
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	if err := run(ctx, *addr, logger); err != nil {
+		logger.With("err", err).Error("Contests stopped")
+		os.Exit(1)
 	}
 }
 
-func metricsHandler() http.Handler {
-	return promhttp.Handler()
+func run(ctx context.Context, addr string, logger *slog.Logger) error {
+	checks, err := configuredChecks(os.Getenv("CHECKS"))
+	if err != nil {
+		return err
+	}
+	registry := newRegistry()
+	runner := probe.New(checks, registry, logger)
+	server := &http.Server{
+		Addr:              addr,
+		Handler:           newHandler(registry),
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	var wg sync.WaitGroup
+	wg.Go(func() { runner.Run(ctx) })
+	var shutdownErr error
+	wg.Go(func() {
+		<-ctx.Done()
+		shutdownCtx, stop := context.WithTimeout(context.Background(), 10*time.Second)
+		defer stop()
+		shutdownErr = server.Shutdown(shutdownCtx)
+		if shutdownErr != nil {
+			shutdownErr = errors.Join(shutdownErr, server.Close())
+		}
+	})
+	logger.With("address", addr).Info("Starting contests")
+	err = server.ListenAndServe()
+	cancel()
+	wg.Wait()
+	if errors.Is(err, http.ErrServerClosed) {
+		err = nil
+	}
+	return errors.Join(err, shutdownErr)
+}
+
+func configuredChecks(names string) ([]probe.Check, error) {
+	if names == "none" {
+		return nil, nil
+	}
+	if names == "" {
+		names = "postgres,kafka,bucket,valkey"
+	}
+	available := map[string]func(context.Context) error{
+		"postgres": database.Check,
+		"kafka":    kafka.Check,
+		"bucket":   func(ctx context.Context) error { return bucket.Check(ctx, os.Getenv("BUCKET_NAME")) },
+		"valkey":   valkey.Check,
+	}
+	var checks []probe.Check
+	seen := make(map[string]bool)
+	for name := range strings.SplitSeq(names, ",") {
+		check, ok := available[name]
+		if !ok || seen[name] {
+			return nil, fmt.Errorf("unknown or duplicate check %q", name)
+		}
+		seen[name] = true
+		checks = append(checks, probe.Check{Name: name, Run: check})
+	}
+	return checks, nil
+}
+
+func newRegistry() *prometheus.Registry {
+	registry := prometheus.NewRegistry()
+	registry.MustRegister(collectors.NewGoCollector(), collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	return registry
+}
+
+func newHandler(registry prometheus.Gatherer) http.Handler {
+	mux := http.NewServeMux()
+	mux.Handle("GET /metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
+	mux.HandleFunc("GET /ping", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	return mux
 }

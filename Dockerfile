@@ -1,12 +1,13 @@
-FROM golang:1.26-alpine AS builder
-RUN apk add --no-cache git
-COPY . /src
+FROM golang:1.26.11-alpine AS builder
 WORKDIR /src
-RUN rm -f go.sum
-RUN go get ./...
-RUN GOOS=linux GOARCH=amd64 go build -o bin/contests cmd/contests/main.go
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 go build -mod=readonly -trimpath -ldflags="-s -w" -o /contests ./cmd/contests
 
-FROM gcr.io/distroless/base
-WORKDIR /app
-COPY --from=builder /src/bin/contests /app/contests
-ENTRYPOINT ["/app/contests"]
+FROM scratch
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=builder /contests /contests
+USER 65532:65532
+EXPOSE 8080
+ENTRYPOINT ["/contests"]

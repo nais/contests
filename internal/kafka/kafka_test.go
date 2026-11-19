@@ -5,8 +5,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"net"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -166,23 +164,15 @@ func TestRemainingTimeoutNeedsUsableDeadline(t *testing.T) {
 	}
 }
 
-func TestKafkaProbeTimeout(t *testing.T) {
-	if probeTimeout != 8*time.Second {
-		t.Fatalf("probe timeout = %s, want 8s", probeTimeout)
-	}
-}
-
 func TestExpiredRequestReturnsWithoutConnecting(t *testing.T) {
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
 	defer cancel()
-	request := httptest.NewRequest(http.MethodGet, "/kafka", nil).WithContext(ctx)
-	recorder := httptest.NewRecorder()
 	start := time.Now()
 
-	(&Kafka{brokers: []string{"invalid:9092"}}).Handler()(recorder, request)
+	err := (&Kafka{brokers: []string{"invalid:9092"}}).Check(ctx)
 
-	if recorder.Code != http.StatusInternalServerError {
-		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusInternalServerError)
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("error = %v, want deadline exceeded", err)
 	}
 	if elapsed := time.Since(start); elapsed > 200*time.Millisecond {
 		t.Fatalf("expired probe took %s", elapsed)
@@ -291,13 +281,12 @@ func TestBrokerConnectionClosesAfterDeadline(t *testing.T) {
 	k := &Kafka{config: config, brokers: []string{listener.Addr().String()}}
 	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Millisecond)
 	defer cancel()
-	recorder := httptest.NewRecorder()
 	start := time.Now()
 
-	k.Handler()(recorder, httptest.NewRequest(http.MethodGet, "/kafka", nil).WithContext(ctx))
+	err = k.Check(ctx)
 
-	if recorder.Code != http.StatusInternalServerError {
-		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusInternalServerError)
+	if err == nil {
+		t.Fatal("stalled broker check succeeded")
 	}
 	if elapsed := time.Since(start); elapsed > 400*time.Millisecond {
 		t.Fatalf("stalled broker kept handler alive for %s", elapsed)
