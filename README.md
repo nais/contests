@@ -111,6 +111,6 @@ go test -tags=integration ./internal/database
 
 The image is a statically linked Go binary and CA certificates in `scratch`,
 running as a non-root user. Builds use the committed `go.mod` and `go.sum`.
-Pull requests run checks and build the image without publishing. Main publishes
-the image and chart, then uses the existing Fasit rollout: ci-nais first, followed
-by the remaining tenant targets.
+The shared `nais/actions` workflow handles checks, builds and artifact publication
+for both pull requests and main. Only main deploys through Fasit: ci-nais first,
+followed by the remaining tenant targets.
