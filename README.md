@@ -89,6 +89,16 @@ resources before upgrading. BigQuery, OpenSearch, Azure, HTTP service-check
 endpoints and the public ingress are no longer part of contests. Network probes
 remain in blackbox exporter; service checks use the metrics described above.
 
+Postgres and Application belong to this single chart and feature. When Postgres
+does not exist, a `pre-install,pre-upgrade` hook creates it before Application
+admission. The hook explicitly disables the default delete-before-create policy.
+On subsequent upgrades, `lookup` finds the database and Helm adopts it as a
+normal release resource. Release ownership annotations enable that handover.
+`helm.sh/resource-policy: keep` retains Postgres when disabling the check or
+uninstalling; database deletion is an explicit operation. No separate database
+release or manual bootstrap is needed. Client credentials may become ready later;
+the application's required Secret references prevent startup until then.
+
 ## Development and delivery
 
 ```sh

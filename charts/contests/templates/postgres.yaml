@@ -1,4 +1,5 @@
-{{ if .Values.contests.postgres.enabled }}
+{{- if .Values.contests.postgres.enabled }}
+{{- $postgres := lookup "nais.io/v1" "Postgres" .Release.Namespace "contests" }}
 ---
 apiVersion: nais.io/v1
 kind: Postgres
@@ -7,10 +8,18 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "contests.labels" . | nindent 4 }}
+  annotations:
+    meta.helm.sh/release-name: {{ .Release.Name | quote }}
+    meta.helm.sh/release-namespace: {{ .Release.Namespace | quote }}
+    helm.sh/resource-policy: keep
+    {{- if not $postgres }}
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-delete-policy: hook-failed
+    {{- end }}
 spec:
   majorVersion: "18"
   resources:
     cpu: 100m
     diskSize: 5Gi
     memory: 256Mi
-{{ end }}
+{{- end }}
