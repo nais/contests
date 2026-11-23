@@ -1,0 +1,403 @@
+{
+  "apiVersion": "dashboard.grafana.app/v1",
+  "kind": "Dashboard",
+  "metadata": {
+    "name": "nais-contests"
+  },
+  "spec": {
+    "title": "Nais connectivity tests",
+    "description": "Expected network access and Kafka TLS reachability from contests. One tenant datasource and one cluster at a time.",
+    "uid": "nais-contests",
+    "editable": false,
+    "schemaVersion": 39,
+    "tags": ["nais", "contests", "connectivity"],
+    "timezone": "browser",
+    "refresh": "1m",
+    "time": {"from": "now-6h", "to": "now"},
+    "links": [
+      {
+        "title": "Source",
+        "type": "link",
+        "icon": "doc",
+        "targetBlank": true,
+        "url": "https://github.com/nais/contests/tree/main/grafana"
+      },
+      {
+        "title": "Test contracts and operation",
+        "type": "link",
+        "icon": "doc",
+        "targetBlank": true,
+        "url": "https://github.com/nais/contests/blob/main/README.md"
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "datasource",
+          "label": "Tenant",
+          "description": "Select one tenant's management metrics datasource, such as nav-metrics. Never combine tenants.",
+          "type": "datasource",
+          "query": "prometheus",
+          "regex": "/.*-metrics$/",
+          "refresh": 1,
+          "includeAll": false,
+          "multi": false,
+          "options": []
+        },
+        {
+          "name": "namespace",
+          "label": "Namespace",
+          "type": "textbox",
+          "query": "nais-system",
+          "current": {"text": "nais-system", "value": "nais-system"},
+          "options": []
+        },
+        {
+          "name": "release",
+          "label": "Helm release",
+          "type": "textbox",
+          "query": "contests",
+          "current": {"text": "contests", "value": "contests"},
+          "options": []
+        },
+        {
+          "name": "cluster",
+          "label": "Cluster",
+          "description": "Clusters discovered from namespace scrape targets, including when contests probes are missing.",
+          "type": "query",
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "definition": "label_values(up{namespace=\"$namespace\"}, k8s_cluster_name)",
+          "query": {
+            "query": "label_values(up{namespace=\"$namespace\"}, k8s_cluster_name)",
+            "refId": "cluster"
+          },
+          "refresh": 2,
+          "sort": 1,
+          "includeAll": false,
+          "multi": false,
+          "options": []
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "type": "text",
+        "title": "Reading this dashboard",
+        "gridPos": {"x": 0, "y": 0, "w": 24, "h": 3},
+        "options": {
+          "mode": "markdown",
+          "content": "**Green means the expected result**, including failure to reach denied targets. **No data is unknown**, not success; Kafka and denied probes can also be disabled. Results require a successful scrape and a sample younger than three minutes. Tests run once a minute. Kafka checks TLS connectivity only. Denial is an HTTP-based smoke test, not a complete isolation proof."
+        }
+      },
+      {
+        "id": 2,
+        "type": "stat",
+        "title": "Internal allowed",
+        "description": "Blackbox exporter should reach http://contests/ping. Worst fresh observed result; a missing or failed scrape is unknown.",
+        "gridPos": {"x": 0, "y": 3, "w": 4, "h": 4},
+        "datasource": {"type": "prometheus", "uid": "${datasource}"},
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "min(probe_success{k8s_cluster_name=\"$cluster\", job=\"probe/${namespace}/${release}-probes\", instance=\"http://contests/ping\"} and (time() - timestamp(probe_success{k8s_cluster_name=\"$cluster\", job=\"probe/${namespace}/${release}-probes\", instance=\"http://contests/ping\"}) < 180) and (up{k8s_cluster_name=\"$cluster\", job=\"probe/${namespace}/${release}-probes\", instance=\"http://contests/ping\"} == 1))",
+            "instant": true,
+            "range": false
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "min": 0, "max": 1, "unit": "short", "noValue": "No data",
+            "color": {"mode": "thresholds"},
+            "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]},
+            "mappings": [
+              {"type": "value", "options": {"0": {"text": "Unreachable", "color": "red"}, "1": {"text": "Reachable", "color": "green"}}},
+              {"type": "special", "options": {"match": "null", "result": {"text": "No data", "color": "gray"}}}
+            ]
+          },
+          "overrides": []
+        },
+        "options": {"colorMode": "background", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"]}}
+      },
+      {
+        "id": 3,
+        "type": "stat",
+        "title": "Internal denied",
+        "description": "http://contests-noaccess/ping must not be reachable. A green result can also come from target, DNS or HTTP failure; this does not prove ingress and egress denial independently.",
+        "gridPos": {"x": 4, "y": 3, "w": 4, "h": 4},
+        "datasource": {"type": "prometheus", "uid": "${datasource}"},
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "1 - max(probe_success{k8s_cluster_name=\"$cluster\", job=\"probe/${namespace}/${release}-probes\", instance=\"http://contests-noaccess/ping\"} and (time() - timestamp(probe_success{k8s_cluster_name=\"$cluster\", job=\"probe/${namespace}/${release}-probes\", instance=\"http://contests-noaccess/ping\"}) < 180) and (up{k8s_cluster_name=\"$cluster\", job=\"probe/${namespace}/${release}-probes\", instance=\"http://contests-noaccess/ping\"} == 1))",
+            "instant": true,
+            "range": false
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "min": 0, "max": 1, "unit": "short", "noValue": "No data",
+            "color": {"mode": "thresholds"},
+            "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]},
+            "mappings": [
+              {"type": "value", "options": {"0": {"text": "Unexpected access", "color": "red"}, "1": {"text": "Blocked", "color": "green"}}},
+              {"type": "special", "options": {"match": "null", "result": {"text": "No data", "color": "gray"}}}
+            ]
+          },
+          "overrides": []
+        },
+        "options": {"colorMode": "background", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"]}}
+      },
+      {
+        "id": 4,
+        "type": "stat",
+        "title": "External allowed: Google",
+        "description": "HTTPS reachability to dns.google, not DNS queries. This panel fails for this target alone; the chart's external-connectivity alert requires both allowed external targets to fail.",
+        "gridPos": {"x": 8, "y": 3, "w": 4, "h": 4},
+        "datasource": {"type": "prometheus", "uid": "${datasource}"},
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "min(probe_success{k8s_cluster_name=\"$cluster\", job=\"probe/${namespace}/${release}-probes\", instance=\"https://dns.google\"} and (time() - timestamp(probe_success{k8s_cluster_name=\"$cluster\", job=\"probe/${namespace}/${release}-probes\", instance=\"https://dns.google\"}) < 180) and (up{k8s_cluster_name=\"$cluster\", job=\"probe/${namespace}/${release}-probes\", instance=\"https://dns.google\"} == 1))",
+            "instant": true,
+            "range": false
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "min": 0, "max": 1, "unit": "short", "noValue": "No data",
+            "color": {"mode": "thresholds"},
+            "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]},
+            "mappings": [
+              {"type": "value", "options": {"0": {"text": "Unreachable", "color": "red"}, "1": {"text": "Reachable", "color": "green"}}},
+              {"type": "special", "options": {"match": "null", "result": {"text": "No data", "color": "gray"}}}
+            ]
+          },
+          "overrides": []
+        },
+        "options": {"colorMode": "background", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"]}}
+      },
+      {
+        "id": 5,
+        "type": "stat",
+        "title": "External allowed: Cloudflare",
+        "description": "HTTPS reachability to 1dot1dot1dot1.cloudflare-dns.com, not DNS queries. No data is not a healthy result.",
+        "gridPos": {"x": 12, "y": 3, "w": 4, "h": 4},
+        "datasource": {"type": "prometheus", "uid": "${datasource}"},
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "min(probe_success{k8s_cluster_name=\"$cluster\", job=\"probe/${namespace}/${release}-probes\", instance=\"https://1dot1dot1dot1.cloudflare-dns.com\"} and (time() - timestamp(probe_success{k8s_cluster_name=\"$cluster\", job=\"probe/${namespace}/${release}-probes\", instance=\"https://1dot1dot1dot1.cloudflare-dns.com\"}) < 180) and (up{k8s_cluster_name=\"$cluster\", job=\"probe/${namespace}/${release}-probes\", instance=\"https://1dot1dot1dot1.cloudflare-dns.com\"} == 1))",
+            "instant": true,
+            "range": false
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "min": 0, "max": 1, "unit": "short", "noValue": "No data",
+            "color": {"mode": "thresholds"},
+            "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]},
+            "mappings": [
+              {"type": "value", "options": {"0": {"text": "Unreachable", "color": "red"}, "1": {"text": "Reachable", "color": "green"}}},
+              {"type": "special", "options": {"match": "null", "result": {"text": "No data", "color": "gray"}}}
+            ]
+          },
+          "overrides": []
+        },
+        "options": {"colorMode": "background", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"]}}
+      },
+      {
+        "id": 6,
+        "type": "stat",
+        "title": "External denied",
+        "description": "HTTPS to google.com must not succeed without an access-policy rule. DNS, TLS or HTTP failure can also make this probe green; it is not a complete egress-isolation proof.",
+        "gridPos": {"x": 16, "y": 3, "w": 4, "h": 4},
+        "datasource": {"type": "prometheus", "uid": "${datasource}"},
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "1 - max(probe_success{k8s_cluster_name=\"$cluster\", job=\"probe/${namespace}/${release}-probes\", instance=\"https://google.com\"} and (time() - timestamp(probe_success{k8s_cluster_name=\"$cluster\", job=\"probe/${namespace}/${release}-probes\", instance=\"https://google.com\"}) < 180) and (up{k8s_cluster_name=\"$cluster\", job=\"probe/${namespace}/${release}-probes\", instance=\"https://google.com\"} == 1))",
+            "instant": true,
+            "range": false
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "min": 0, "max": 1, "unit": "short", "noValue": "No data",
+            "color": {"mode": "thresholds"},
+            "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]},
+            "mappings": [
+              {"type": "value", "options": {"0": {"text": "Unexpected access", "color": "red"}, "1": {"text": "Blocked", "color": "green"}}},
+              {"type": "special", "options": {"match": "null", "result": {"text": "No data", "color": "gray"}}}
+            ]
+          },
+          "overrides": []
+        },
+        "options": {"colorMode": "background", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"]}}
+      },
+      {
+        "id": 7,
+        "type": "stat",
+        "title": "Kafka TLS",
+        "description": "The /kafka endpoint must establish TLS connections to every configured broker within eight seconds. No messaging or topic permissions are tested. No data may mean Kafka is disabled or telemetry is missing.",
+        "gridPos": {"x": 20, "y": 3, "w": 4, "h": 4},
+        "datasource": {"type": "prometheus", "uid": "${datasource}"},
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "min(probe_success{k8s_cluster_name=\"$cluster\", job=\"probe/${namespace}/${release}-kafka-probe\", instance=\"http://contests/kafka\"} and (time() - timestamp(probe_success{k8s_cluster_name=\"$cluster\", job=\"probe/${namespace}/${release}-kafka-probe\", instance=\"http://contests/kafka\"}) < 180) and (up{k8s_cluster_name=\"$cluster\", job=\"probe/${namespace}/${release}-kafka-probe\", instance=\"http://contests/kafka\"} == 1))",
+            "instant": true,
+            "range": false
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "min": 0, "max": 1, "unit": "short", "noValue": "No data",
+            "color": {"mode": "thresholds"},
+            "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]},
+            "mappings": [
+              {"type": "value", "options": {"0": {"text": "Connection failed", "color": "red"}, "1": {"text": "Connected", "color": "green"}}},
+              {"type": "special", "options": {"match": "null", "result": {"text": "No data", "color": "gray"}}}
+            ]
+          },
+          "overrides": []
+        },
+        "options": {"colorMode": "background", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"]}}
+      },
+      {
+        "id": 8,
+        "type": "state-timeline",
+        "title": "Expected results over time",
+        "description": "Allowed targets need success; denied targets need failure. Includes additional allowed URLs. Worst fresh result per target. Gaps are unknown, never healthy zeroes.",
+        "gridPos": {"x": 0, "y": 7, "w": 24, "h": 8},
+        "datasource": {"type": "prometheus", "uid": "${datasource}"},
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "min by (instance) (probe_success{k8s_cluster_name=\"$cluster\", job=~\"probe/${namespace:regex}/${release:regex}-(probes|kafka-probe)\", instance!~\"http://contests-noaccess/ping|https://google[.]com\"} and (time() - timestamp(probe_success{k8s_cluster_name=\"$cluster\", job=~\"probe/${namespace:regex}/${release:regex}-(probes|kafka-probe)\"}) < 180) and (up{k8s_cluster_name=\"$cluster\", job=~\"probe/${namespace:regex}/${release:regex}-(probes|kafka-probe)\"} == 1))",
+            "legendFormat": "{{instance}}",
+            "interval": "1m",
+            "range": true
+          },
+          {
+            "refId": "B",
+            "expr": "1 - max by (instance) (probe_success{k8s_cluster_name=\"$cluster\", job=\"probe/${namespace}/${release}-probes\", instance=~\"http://contests-noaccess/ping|https://google[.]com\"} and (time() - timestamp(probe_success{k8s_cluster_name=\"$cluster\", job=\"probe/${namespace}/${release}-probes\"}) < 180) and (up{k8s_cluster_name=\"$cluster\", job=\"probe/${namespace}/${release}-probes\"} == 1))",
+            "legendFormat": "{{instance}} (denied)",
+            "interval": "1m",
+            "range": true
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "min": 0, "max": 1, "unit": "short", "noValue": "Unknown",
+            "color": {"mode": "thresholds"},
+            "custom": {"fillOpacity": 85, "lineWidth": 0, "spanNulls": false},
+            "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]},
+            "mappings": [
+              {"type": "value", "options": {"0": {"text": "Unexpected result", "color": "red"}, "1": {"text": "Expected result", "color": "green"}}},
+              {"type": "special", "options": {"match": "null", "result": {"text": "Unknown", "color": "gray"}}}
+            ]
+          },
+          "overrides": []
+        },
+        "options": {"mergeValues": true, "showValue": "never", "rowHeight": 0.8, "legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "multi"}}
+      },
+      {
+        "id": 9,
+        "type": "timeseries",
+        "title": "Probe scrape health",
+        "description": "1 means the exporter answered the probe scrape, not that the target succeeded. A 0 means the result cannot be trusted; a missing series is unknown.",
+        "gridPos": {"x": 0, "y": 15, "w": 12, "h": 7},
+        "datasource": {"type": "prometheus", "uid": "${datasource}"},
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "min by (instance) (up{k8s_cluster_name=\"$cluster\", job=~\"probe/${namespace:regex}/${release:regex}-(probes|kafka-probe)\"})",
+            "legendFormat": "{{instance}}",
+            "interval": "1m",
+            "range": true
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "min": 0, "max": 1, "unit": "short", "noValue": "No data",
+            "custom": {"drawStyle": "line", "lineInterpolation": "stepAfter", "spanNulls": false},
+            "mappings": [{"type": "value", "options": {"0": {"text": "Scrape failed"}, "1": {"text": "Scrape succeeded"}}}]
+          },
+          "overrides": []
+        },
+        "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull"]}, "tooltip": {"mode": "multi"}}
+      },
+      {
+        "id": 10,
+        "type": "timeseries",
+        "title": "Probe sample age",
+        "description": "Age of the oldest observed result per target. Normal samples arrive each minute. Results older than 180 seconds are excluded from green status; this is a display guard, not an SLO.",
+        "gridPos": {"x": 12, "y": 15, "w": 12, "h": 7},
+        "datasource": {"type": "prometheus", "uid": "${datasource}"},
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "max by (instance) (time() - timestamp(probe_success{k8s_cluster_name=\"$cluster\", job=~\"probe/${namespace:regex}/${release:regex}-(probes|kafka-probe)\"}))",
+            "legendFormat": "{{instance}}",
+            "interval": "1m",
+            "range": true
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "min": 0, "unit": "s", "noValue": "No data",
+            "custom": {"drawStyle": "line", "spanNulls": false, "thresholdsStyle": {"mode": "line"}},
+            "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 180}]}
+          },
+          "overrides": []
+        },
+        "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]}, "tooltip": {"mode": "multi"}}
+      },
+      {
+        "id": 11,
+        "type": "timeseries",
+        "title": "Probe duration",
+        "description": "Duration of each blackbox probe, not a cumulative counter or latency percentile. Denied targets may use their full five-second timeout normally. Kafka includes all broker TLS handshakes.",
+        "gridPos": {"x": 0, "y": 22, "w": 12, "h": 7},
+        "datasource": {"type": "prometheus", "uid": "${datasource}"},
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "max by (instance) (probe_duration_seconds{k8s_cluster_name=\"$cluster\", job=~\"probe/${namespace:regex}/${release:regex}-(probes|kafka-probe)\"} and (up{k8s_cluster_name=\"$cluster\", job=~\"probe/${namespace:regex}/${release:regex}-(probes|kafka-probe)\"} == 1))",
+            "legendFormat": "{{instance}}",
+            "interval": "1m",
+            "range": true
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {"min": 0, "unit": "s", "noValue": "No data", "custom": {"drawStyle": "line", "spanNulls": false}},
+          "overrides": []
+        },
+        "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]}, "tooltip": {"mode": "multi"}}
+      },
+      {
+        "id": 12,
+        "type": "timeseries",
+        "title": "HTTP response codes",
+        "description": "Diagnostic only: 0 means no HTTP response and is expected for many denied probes. For /kafka, 200/503 comes from contests, not from Kafka itself.",
+        "gridPos": {"x": 12, "y": 22, "w": 12, "h": 7},
+        "datasource": {"type": "prometheus", "uid": "${datasource}"},
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "max by (instance) (probe_http_status_code{k8s_cluster_name=\"$cluster\", job=~\"probe/${namespace:regex}/${release:regex}-(probes|kafka-probe)\"} and (up{k8s_cluster_name=\"$cluster\", job=~\"probe/${namespace:regex}/${release:regex}-(probes|kafka-probe)\"} == 1))",
+            "legendFormat": "{{instance}}",
+            "interval": "1m",
+            "range": true
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {"min": 0, "unit": "short", "decimals": 0, "noValue": "No data", "custom": {"drawStyle": "line", "lineInterpolation": "stepAfter", "spanNulls": false}},
+          "overrides": []
+        },
+        "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull"]}, "tooltip": {"mode": "multi"}}
+      }
+    ]
+  }
+}

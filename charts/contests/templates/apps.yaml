@@ -28,37 +28,11 @@ spec:
     limits:
       memory: 128Mi
   env:
-    - name: CHECKS
-      value: {{ include "contests.checks" . | quote }}
     - name: GOMEMLIMIT
       value: 96MiB
-    {{- if .Values.contests.bucket.enabled }}
-    - name: BUCKET_NAME
-      value: {{ include "contests.bucketName" . | quote }}
-    {{- end }}
-    {{- if .Values.contests.kafka.enabled }}
-    - name: KAFKA_TOPIC
-      value: {{ .Release.Namespace }}.contests
-    {{- end }}
-  {{- if .Values.contests.bucket.enabled }}
-  gcp:
-    buckets:
-      - name: {{ include "contests.bucketName" . | quote }}
-  {{- end }}
   {{- if .Values.contests.kafka.enabled }}
   kafka:
     pool: {{ required "contests.kafka.pool is required when Kafka is enabled" .Values.contests.kafka.pool | quote }}
-  {{- end }}
-  {{- if .Values.contests.valkey.enabled }}
-  valkey:
-    - instance: contests
-      access: readwrite
-  {{- end }}
-  {{- if .Values.contests.postgres.enabled }}
-  uses:
-    postgres:
-      - name: contests
-        role: readwrite
   {{- end }}
 {{- if .Values.contests.accessPolicy.enabled }}
 ---
@@ -86,8 +60,6 @@ spec:
     limits:
       memory: 128Mi
   env:
-    - name: CHECKS
-      value: none
     - name: GOMEMLIMIT
       value: 96MiB
 {{- end }}

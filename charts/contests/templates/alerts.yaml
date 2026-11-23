@@ -11,31 +11,19 @@ spec:
   groups:
     - name: nais-contests-alerts
       rules:
-        {{- if ne (include "contests.checks" .) "none" }}
-        - alert: ContestsCheckFailing
-          expr: contests_check_success{namespace="{{ .Release.Namespace }}", app="contests"} == 0
-          for: 5m
-          labels:
-            namespace: {{ .Release.Namespace }}
-            severity: critical
-            ping: nais-vakt
-          annotations:
-            summary: 'Contests {{ "{{ $labels.check }}" }} check is failing'
-            action: Check contests logs and the corresponding service in {{ .Release.Namespace }}.
-        - alert: ContestsChecksMissing
+        {{- if .Values.contests.kafka.enabled }}
+        - alert: Kafka connectivity test failing
           expr: |
-            (time() - contests_check_last_run_timestamp_seconds{namespace="{{ .Release.Namespace }}", app="contests"} > 180)
-            {{- range splitList "," (include "contests.checks" .) }}
-            or absent(contests_check_last_run_timestamp_seconds{namespace="{{ $.Release.Namespace }}", app="contests", check="{{ . }}"})
-            {{- end }}
+            probe_success{job="probe/{{ .Release.Namespace }}/{{ .Release.Name }}-kafka-probe", instance="http://contests/kafka"} == 0
+            or absent(probe_success{job="probe/{{ .Release.Namespace }}/{{ .Release.Name }}-kafka-probe", instance="http://contests/kafka"})
           for: 5m
           labels:
             namespace: {{ .Release.Namespace }}
             severity: critical
             ping: nais-vakt
           annotations:
-            summary: Contests connectivity checks are not reporting
-            action: Check that the contests pod is running and its metrics are being scraped.
+            summary: Contests cannot establish TLS connections to its Kafka brokers
+            action: Check contests logs, Kafka credentials and connectivity to the configured brokers.
         {{- end }}
         - alert: External URLs failing
           expr: sum(probe_success{job="probe/{{ .Release.Namespace }}/{{ .Release.Name }}-probes", instance=~"https://.*dns.*"}) == 0

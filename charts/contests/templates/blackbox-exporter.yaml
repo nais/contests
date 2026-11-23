@@ -16,6 +16,14 @@ data:
           follow_redirects: true
           preferred_ip_protocol: ip4
           ip_protocol_fallback: false
+    {{- if .Values.contests.kafka.enabled }}
+      http_kafka:
+        prober: http
+        timeout: 10s
+        http:
+          preferred_ip_protocol: ip4
+          ip_protocol_fallback: false
+    {{- end }}
 ---
 apiVersion: nais.io/v1alpha1
 kind: Application
@@ -102,3 +110,24 @@ spec:
         {{- range .Values.blackboxExporter.additionalTargetURLs }}
         - {{ . | quote }}
         {{- end }}
+{{- if .Values.contests.kafka.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: {{ .Release.Name }}-kafka-probe
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "contests.labels" . | nindent 4 }}
+    nais.io/prometheus: nais
+spec:
+  interval: 60s
+  scrapeTimeout: 12s
+  module: http_kafka
+  prober:
+    url: {{ .Release.Name }}-blackbox-exporter.{{ .Release.Namespace }}:80
+  targets:
+    staticConfig:
+      static:
+        - http://contests/kafka
+{{- end }}
