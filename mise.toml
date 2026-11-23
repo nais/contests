@@ -31,7 +31,7 @@ run = "go mod tidy -diff"
 
 [tasks.fmt-check]
 description = "Check Go formatting without modifying files"
-run = 'files=$(gofumpt -l cmd internal); if [ -n "$files" ]; then printf "%s\n" "$files"; exit 1; fi'
+run = 'files=$(gofumpt -l cmd); if [ -n "$files" ]; then printf "%s\n" "$files"; exit 1; fi'
 
 [tasks.verify]
 description = "Verify module checksums"
@@ -39,7 +39,7 @@ run = "go mod verify"
 
 [tasks.lint]
 description = "Run golangci-lint (staticcheck, gosec, deadcode)"
-run = "golangci-lint run --build-tags integration ./..."
+run = "golangci-lint run ./..."
 
 [tasks.vulncheck]
 description = "Run govulncheck"
@@ -47,8 +47,8 @@ run = "govulncheck ./..."
 
 [tasks.fmt]
 description = "Format code with gofumpt"
-run = "gofumpt -w cmd internal"
+run = "gofumpt -w cmd"
 
 [tasks.helm-lint]
 description = "Lint Helm chart"
-run = "helm lint --strict charts/contests --set contests.kafka.pool=test"
+run = "helm lint --strict charts/contests"

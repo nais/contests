@@ -2,18 +2,9 @@ dependencies:
   - allOf:
       - monitoring
       - nais-crds
-      - pgrator
 values:
-  blackboxExporter.additionalTargetURLs:
-    displayName: Additional Target URLs
-    config:
-      type: string_array
-  contests.postgres.enabled:
-    displayName: Enable Nais Postgres check
-    config:
-      type: bool
   contests.kafka.enabled:
-    displayName: Enable Kafka check
+    displayName: Enable Kafka connectivity check
     config:
       type: bool
     computed:
@@ -22,13 +13,7 @@ values:
     displayName: Kafka pool
     computed:
       template: '{{ .Env.aiven_project | quote }}'
-  contests.bucket.enabled:
-    displayName: Enable bucket check
+  blackboxExporter.additionalTargetURLs:
+    displayName: Additional Target URLs
     config:
-      type: bool
-  contests.valkey.enabled:
-    displayName: Enable Valkey check
-    config:
-      type: bool
-    computed:
-      template: '{{ hasKey .Env "aiven_project" }}'
+      type: string_array

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -10,7 +12,7 @@ import (
 func TestMetricsHandlerExposesRuntimeAndProcessMetrics(t *testing.T) {
 	t.Parallel()
 	recorder := httptest.NewRecorder()
-	newHandler(newRegistry()).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/metrics", nil))
+	newHandler(newRegistry(), testLogger()).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/metrics", nil))
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusOK)
 	}
@@ -31,44 +33,10 @@ func TestMetricsHandlerExposesRuntimeAndProcessMetrics(t *testing.T) {
 	}
 }
 
-func TestConfiguredChecks(t *testing.T) {
-	t.Parallel()
-	for _, tt := range []struct {
-		name    string
-		config  string
-		want    string
-		wantErr bool
-	}{
-		{name: "defaults", want: "postgres,kafka,bucket,valkey"},
-		{name: "subset", config: "postgres,bucket", want: "postgres,bucket"},
-		{name: "network target only", config: "none"},
-		{name: "none cannot be combined with checks", config: "none,postgres", wantErr: true},
-		{name: "unknown", config: "postgres,missing", wantErr: true},
-		{name: "duplicate", config: "bucket,bucket", wantErr: true},
-	} {
-		t.Run(tt.name, func(t *testing.T) {
-			checks, err := configuredChecks(tt.config)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("configuredChecks() error = %v", err)
-			}
-			if tt.wantErr {
-				return
-			}
-			var names []string
-			for _, check := range checks {
-				names = append(names, check.Name)
-			}
-			if got := strings.Join(names, ","); got != tt.want {
-				t.Fatalf("checks = %q, want %q", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestOnlyHealthAndMetricsAreExposed(t *testing.T) {
-	t.Parallel()
-	handler := newHandler(newRegistry())
-	for _, path := range []string{"/ping", "/metrics", "/postgres", "/kafka", "/bucket", "/valkey", "/statuscode/500"} {
+func TestKafkaEndpointIsDisabledWithoutBrokers(t *testing.T) {
+	t.Setenv("KAFKA_BROKERS", "")
+	handler := newHandler(newRegistry(), testLogger())
+	for _, path := range []string{"/ping", "/metrics", "/kafka", "/missing"} {
 		recorder := httptest.NewRecorder()
 		handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, path, nil))
 		want := http.StatusNotFound
@@ -79,4 +47,8 @@ func TestOnlyHealthAndMetricsAreExposed(t *testing.T) {
 			t.Errorf("%s status = %d, want %d", path, recorder.Code, want)
 		}
 	}
+}
+
+func testLogger() *slog.Logger {
+	return slog.New(slog.NewTextHandler(io.Discard, nil))
 }

@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - simplify
   pull_request:
 
 concurrency:
